@@ -1,0 +1,31 @@
+#! /bin/bash
+
+PROTON_DIR=/home/mick/latest/qpid-proton
+INSTALL_DIR=/home/mick/latest/qpid-proton/install
+
+
+for client in send direct
+do
+  echo " "
+  echo "   compile ${client}..."
+  /usr/bin/cc  -I${PROTON_DIR}/c/include \
+               -I${PROTON_DIR}/c/src     \
+               -I${PROTON_DIR}/build/c/include \
+               -I${PROTON_DIR}/build/c/src \
+               -fvisibility=hidden -O2 -g \
+               -DNDEBUG -std=c99 -MD -MT  \
+               ./${client}.c.o -MF ./${client}.c.o.d \
+               -o ./${client}.c.o \
+               -c ./${client}.c
+
+  echo "   link ${client}"
+  /usr/bin/cc  -fvisibility=hidden -O2 -g \
+               -DNDEBUG -rdynamic         \
+               ./${client}.c.o -o ${client}  \
+               -Wl,-rpath,${PROTON_DIR}/build/c \
+               ${INSTALL_DIR}/lib64/libqpid-proton-proactor.so.1.8.2 \
+               ${INSTALL_DIR}/lib64/libqpid-proton-core.so.10.12.1 \
+               -lpthread
+done
+
+
