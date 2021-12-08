@@ -36,6 +36,9 @@
 #include <time.h>
 #include <sys/time.h>
 #include <string.h>
+#include <sys/types.h>
+#include <unistd.h>
+
 
 int messages_received = 0;
 int bytes_received    = 0;
@@ -55,9 +58,11 @@ double stop_time;
 
 
 typedef struct app_data_t {
-  const char *host, *port;
-  const char *amqp_address;
-  const char *container_id;
+  char * host, 
+       * port,
+       * address,
+       * container_id;
+
   int message_count;
 
   pn_proactor_t *proactor;
@@ -210,7 +215,7 @@ static void handle_send(app_data_t* app, pn_event_t* event) {
 
    case PN_LINK_REMOTE_OPEN: {
      pn_link_t* l = pn_event_link(event);
-     pn_terminus_set_address(pn_link_target(l), app->amqp_address);
+     pn_terminus_set_address(pn_link_target(l), app->address);
      pn_link_open(l);
    } break;
 
@@ -344,14 +349,57 @@ void run(app_data_t *app) {
   } while(true);
 }
 
+void
+parse_args ( int argc, char **argv, struct app_data_t * app )
+{
+  app->container_id = (char *) malloc(20);
+  sprintf ( app->container_id, "send_%d", getpid() );
+
+  // Defaults.
+  app->host          = "";
+  app->port          = "amqp";
+  app->address       = "examples";
+  app->message_count = 1000000;
+
+  // Read command line.
+  for ( int i = 1; i < argc; ++ i )
+  {
+    if ( ! strcmp("host", argv[i]) )
+    {
+      app->host = argv[i+1];
+      i ++;
+    }
+    else
+    if ( ! strcmp("port", argv[i]) )
+    {
+      app->port = argv[i+1];
+      i ++;
+    }
+    else
+    if ( ! strcmp("address", argv[i]) )
+    {
+      app->address = argv[i+1];
+      i ++;
+    }
+    else
+    if ( ! strcmp("message_count", argv[i]) )
+    {
+      app->message_count = atoi(argv[i+1]);
+      i ++;
+    }
+    else
+    {
+      fprintf(stderr, "Unknown option: |%s|\n", argv[i] );
+      exit(1);
+    }
+  }
+}
+
 int main(int argc, char **argv) {
   struct app_data_t app = {0};
   char addr[PN_MAX_ADDR];
-  app.container_id = argv[0];   /* Should be unique */
-  app.host = (argc > 1) ? argv[1] : "";
-  app.port = (argc > 2) ? argv[2] : "amqp";
-  app.amqp_address = (argc > 3) ? argv[3] : "examples";
-  app.message_count = (argc > 4) ? atoi(argv[4]) : 1000000;
+
+  parse_args ( argc, argv, & app );
 
   /* Create the proactor and connect */
   app.proactor = pn_proactor();
