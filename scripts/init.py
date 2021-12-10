@@ -24,6 +24,7 @@ def build_client ( client ) :
     print ( "\n-------------------------------" )
     print ( f"  building client {client}" )
     print (   "-------------------------------" )
+
     compile_command = []
     compile_command.append ( '/usr/bin/cc' )
     compile_command.append ( "-I" + proton_root + "/c/include " )
@@ -37,7 +38,21 @@ def build_client ( client ) :
     compile_command.extend ( ["-o", "../clients/" + client + ".c.o"] )
     compile_command.extend ( ["-c", "../clients/" + client + ".c"] )
 
-    subprocess.call(compile_command)
+    subprocess.call ( compile_command )
+
+    link_command = []
+    link_command.extend (["/usr/bin/cc", "-fvisibility=hidden", "-O2", "-g"])
+    link_command.extend (["-DNDEBUG", "-rdynamic"])
+    link_command.append ("../clients/" + client + ".c.o")
+    link_command.extend (["-o", "../clients/" + client])
+    link_command.append ("-Wl,-rpath," + proton_root + "/build/c" )
+    link_command.append (proton_install + "/lib64/libqpid-proton-proactor.so" )
+    link_command.append (proton_install + "/lib64/libqpid-proton-core.so" )
+    link_command.append ( "-lpthread" )
+
+    subprocess.call ( link_command )
+
+
 
 
 
