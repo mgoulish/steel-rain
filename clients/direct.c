@@ -76,6 +76,7 @@ typedef struct app_data_t {
 
   /* Receiver values */
   int received;
+  int report_frequency;
 } app_data_t;
 
 static const int BATCH = 1000; /* Batch size for unlimited receive */
@@ -140,6 +141,27 @@ static void decode_message(pn_rwbytes_t data) {
   }
 }
 
+
+
+void
+report ( app_data_t * app )
+{
+  double duration, Bps, Mps;
+  stop_time = get_timestamp ( );
+  printf ( "--------------------------------------------\n" );
+  printf("%d messages received\n", app->received);
+  printf("%d  bytes received\n", bytes_received);
+  duration = stop_time - start_time;
+  Bps = (double) bytes_received / duration;
+  Mps = (double) app->received  / duration;
+
+  fprintf ( stderr, "bps = %.0f\n", 8 * Bps );
+  fprintf ( stderr, "Mps = %.0f\n", Mps );
+}
+
+
+
+
 /* This function handles events when we are acting as the receiver */
 static void handle_receive(app_data_t *app, pn_event_t* event) {
   switch (pn_event_type(event)) {
@@ -175,29 +197,29 @@ static void handle_receive(app_data_t *app, pn_event_t* event) {
          pn_link_close(l);               /* Unexpected error, close the link */
        } else if (!pn_delivery_partial(d)) { /* Message is complete */
          ++ messages_received;
-         /*fprintf ( stderr, "MDEBUG received %d\n", messages_received ); */
          decode_message(*m);
          *m = pn_rwbytes_null;
          pn_delivery_update(d, PN_ACCEPTED);
          pn_delivery_settle(d);  /* settle and free d */
-         if (app->message_count == 0) {
+
+         app->received ++;
+         if ( ! (app->received % app->report_frequency) )
+         {
+           report ( app );
+         }
+
+         if (app->message_count == 0) 
+         {
            /* receive forever - see if more credit is needed */
-           if (pn_link_credit(l) < BATCH/2) {
+           if (pn_link_credit(l) < BATCH/2) 
+           {
              pn_link_flow(l, BATCH - pn_link_credit(l));
            }
-         } else if (++app->received >= app->message_count) {
-           double duration, Bps, Mps;
-           stop_time = get_timestamp ( );
-           printf("%d messages received\n", app->received);
-           printf("%d  bytes received\n", bytes_received);
-           fprintf ( stderr, "start time was %.6f\n", start_time );
-           fprintf ( stderr, "stop time was %.6f\n", stop_time );
-           duration = stop_time - start_time;
-           Bps = (double) bytes_received / duration;
-           Mps = (double) app->received  / duration;
-
-           fprintf ( stderr, "bps = %.0f\n", 8 * Bps );
-           fprintf ( stderr, "Mps = %.0f\n", Mps );
+         }
+         else 
+         if (app->received >= app->message_count) 
+         {
+           report ( app );
            close_all(pn_event_connection(event), app);
          }
        }
@@ -356,10 +378,11 @@ parse_args ( int argc, char **argv, struct app_data_t * app )
   sprintf ( app->container_id, "send_%d", getpid() );
 
   // Defaults.
-  app->host          = "";
-  app->port          = "amqp";
-  app->address       = "examples";
-  app->message_count = 1000000;
+  app->host             = "";
+  app->port             = "amqp";
+  app->address          = "examples";
+  app->message_count    = 1000000;
+  app->report_frequency = 1000000000;
 
   // Read command line.
   for ( int i = 1; i < argc; ++ i )
@@ -385,6 +408,12 @@ parse_args ( int argc, char **argv, struct app_data_t * app )
     if ( ! strcmp("message_count", argv[i]) )
     {
       app->message_count = atoi(argv[i+1]);
+      i ++;
+    }
+    else
+    if ( ! strcmp("report", argv[i]) )
+    {
+      app->report_frequency = atoi(argv[i+1]);
       i ++;
     }
     else

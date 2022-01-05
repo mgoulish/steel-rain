@@ -3,24 +3,34 @@
 import os
 import sys
 import subprocess
+import shutil
 
 
-proton_root = os.environ.get('STEEL_RAIN_PROTON_ROOT')
-if proton_root == None:
-  print ( "please set STEEL_RAIN_PROTON_ROOT env var.")
-  sys.exit(1)
+# 
 
-proton_install = os.environ.get('STEEL_RAIN_PROTON_INSTALL')
-if proton_install == None:
-  print ( "please set STEEL_RAIN_PROTON_INSTALL env var.")
-  sys.exit(1)
+def check_env ( ) :
+    proton_root = os.environ.get('STEEL_RAIN_PROTON_ROOT')
+    if proton_root == None:
+      print ( "please set STEEL_RAIN_PROTON_ROOT env var.")
+      sys.exit(1)
+
+    proton_install = os.environ.get('STEEL_RAIN_PROTON_INSTALL')
+    if proton_install == None:
+      print ( "please set STEEL_RAIN_PROTON_INSTALL env var.")
+      sys.exit(1)
+
+    router = shutil.which ( 'qdrouterd' ) 
+    if None == router :
+      print ( "no qdrouterd in path" )
+      sys.exit(1)
+
+    print ( f"using proton_root:    {proton_root}" )
+    print ( f"using proton_install: {proton_install}" )
+    print ( f"using qdrouterd:      {router}" )
+    return proton_root, proton_install
 
 
-print ( f"using proton_root:    {proton_root}" )
-print ( f"using proton_install: {proton_install}" )
-
-
-def build_client ( client ) :
+def build_client ( client, proton_root, proton_install ) :
     print ( "\n-------------------------------" )
     print ( f"  building client {client}" )
     print (   "-------------------------------" )
@@ -56,9 +66,10 @@ def build_client ( client ) :
 
 
 
+proton_root, proton_install = check_env()
 
 for client in ['send', 'direct'] :
-    build_client ( client )
+    build_client ( client, proton_root, proton_install )
 
 
 
