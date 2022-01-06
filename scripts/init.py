@@ -6,8 +6,6 @@ import subprocess
 import shutil
 
 
-# 
-
 def check_env ( ) :
     proton_root = os.environ.get('STEEL_RAIN_PROTON_ROOT')
     if proton_root == None:

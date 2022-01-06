@@ -1,0 +1,6 @@
+#! /bin/bash
+
+export STEEL_RAIN_PROTON_ROOT=/home/mick/latest/qpid-proton
+export STEEL_RAIN_PROTON_INSTALL=/home/mick/latest/qpid-proton/install
+
+./init.py
