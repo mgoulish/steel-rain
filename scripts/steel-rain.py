@@ -120,13 +120,20 @@ def start_router ( name ) :
     print ( f"export LD_LIBRARY_PATH={router_env['LD_LIBRARY_PATH']}\n" )
     print ( f"command: {command}\n" )
 
-    process = subprocess.Popen ( command, env = router_env )
+    output_file_name = context['test_dir'] + "/" + name + ".output"
+
+    output_file = open ( output_file_name, "w" ) 
+    process = subprocess.Popen ( command, 
+                                 env = router_env,
+                                 stderr = output_file )
 
     print ( "Is it running?\n" )
 
-    time.sleep ( 30 )
+    time.sleep ( 10 )
 
     process.terminate()
+    output_file.close()
+
 
 
 
