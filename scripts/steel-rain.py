@@ -110,6 +110,16 @@ def make_router ( command ) :
 
 
 
+def start_receiver ( ) :
+    command = [ "../clients/receive" ]
+    # Do I really not need env???
+
+    # TODO : Get named receivers.
+    output_file_name = context['test_dir'] + "/" + router_name + ".output"
+
+
+
+
 def start_router ( router_name ) :
     config_file_name = context['test_dir'] + "/config/" + router_name + ".conf"
     router_env = dict(os.environ)
@@ -118,9 +128,9 @@ def start_router ( router_name ) :
 
     command = [ context['router'], '--config', config_file_name ]
 
-    print ( f"export PYTHONPATH={router_env['PYTHONPATH']}\n" )
-    print ( f"export LD_LIBRARY_PATH={router_env['LD_LIBRARY_PATH']}\n" )
-    print ( f"command: {command}\n" )
+    #print ( f"export PYTHONPATH={router_env['PYTHONPATH']}\n" )
+    #print ( f"export LD_LIBRARY_PATH={router_env['LD_LIBRARY_PATH']}\n" )
+    #print ( f"command: {command}\n" )
 
     output_file_name = context['test_dir'] + "/" + router_name + ".output"
 
@@ -171,6 +181,8 @@ def read_commands ( file_name ) :
         start ( )
       elif words[0] == 'stop' :
         stop ( )
+      elif words[0] == 'recv' :
+        start_receiver ( )
       else :
         print ( f"Unknown command: |{words[0]}|\n" )
 
