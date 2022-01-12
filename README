@@ -1,2 +1,34 @@
 # steel-rain
 Soak and stress testing for Dispatch Router
+
+This is the first testable version.
+
+Do this:
+
+  1. Define the following environment variables:
+     ( examples from my system )
+
+    export STEEL_RAIN_PROTON_ROOT=/home/mick/latest/qpid-proton
+    export STEEL_RAIN_PROTON_INSTALL=/home/mick/latest/qpid-proton/install
+    export STEEL_RAIN_DISPATCH_INSTALL=/home/mick/latest/qpid-dispatch/install
+
+
+  2. go into the scripts directory and run:
+               ./init.py
+
+     You should see something like this:
+
+            using proton_root:    /home/mick/latest/qpid-proton
+            using proton_install: /home/mick/latest/qpid-proton/install
+            using qdrouterd:      /home/mick/latest/qpid-dispatch/install/sbin/qdrouterd
+
+            -------------------------------
+            building client send
+            -------------------------------
+
+            -------------------------------
+            building client direct
+            -------------------------------
+
+
+

@@ -66,7 +66,7 @@ def build_client ( client, proton_root, proton_install ) :
 
 proton_root, proton_install = check_env()
 
-for client in ['send', 'direct'] :
+for client in ['send', 'direct', 'receive'] :
     build_client ( client, proton_root, proton_install )
 
 
