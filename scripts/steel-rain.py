@@ -10,7 +10,7 @@ import socket
 
 
 
-context = {}
+context = { "routers" : [] }
 
 
 
@@ -102,12 +102,40 @@ def make_router ( command ) :
     f.write("}\n")
     f.close()
 
+    context["routers"].append ( name )
+    print ( f"list of routers is now: |{context['routers']}|\n" )
+
+
+
+
+def start_router ( name ) :
+    config_file_name = context['test_dir'] + "/config/" + name + ".conf"
     router_env = dict(os.environ)
     router_env["LD_LIBRARY_PATH"] = context['dispatch_install'] + "/lib:" + context['proton_install'] + "/lib64"
     router_env["PYTHONPATH"] = context['dispatch_install'] + "/lib/qpid-dispatch/python:" + context['dispatch_install'] + "/lib/python3.9/site-packages"
 
-    print ( f"LD_LIBRARY_PATH == |{router_env['LD_LIBRARY_PATH']}|\n" )
-    print ( f"PYTHONPATH == |{router_env['PYTHONPATH']}|\n" )
+    command = [ context['router'], '--config', config_file_name ]
+
+    print ( f"export PYTHONPATH={router_env['PYTHONPATH']}\n" )
+    print ( f"export LD_LIBRARY_PATH={router_env['LD_LIBRARY_PATH']}\n" )
+    print ( f"command: {command}\n" )
+
+    process = subprocess.Popen ( command, env = router_env )
+
+    print ( "Is it running?\n" )
+
+    time.sleep ( 30 )
+
+    process.terminate()
+
+
+
+
+def start ( ) :
+    print ( "Starting!\n" )
+    for router in context['routers'] :
+      start_router ( router )
+      print ( f"started router {router}\n" )
 
 
 
@@ -121,9 +149,17 @@ def read_commands ( file_name ) :
         print(s.join(words[1:]))
       elif words[0] == 'router' :
         make_router ( words[1:] )
+      elif words[0] == 'pause' :
+        print ( f"pause for {words[1]} seconds.\n" )
+        time.sleep ( int(words[1]) )
+      elif words[0] == 'start' :
+        start ( )
+      else :
+        print ( f"Unknown command: |{words[0]}|\n" )
 
 
-# Main program ----------------------------
+
+# Main program ====================================
 
 find_router()
 if context['router'] == None:
@@ -139,6 +175,6 @@ print ( f"using qdrouterd:        {context['router']}" )
 
 make_test_dir ( )
 
-read_commands ( "./commands" )
+read_commands ( sys.argv[1] )
 
 

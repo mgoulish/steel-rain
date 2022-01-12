@@ -4,5 +4,5 @@ export STEEL_RAIN_DISPATCH_INSTALL=/home/mick/latest/qpid-dispatch/install
 export STEEL_RAIN_PROTON_ROOT=/home/mick/latest/qpid-proton
 export STEEL_RAIN_PROTON_INSTALL=/home/mick/latest/qpid-proton/install
 
-./steel-rain.py
+./steel-rain.py command_scripts/simple_test
 
