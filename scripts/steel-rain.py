@@ -10,7 +10,8 @@ import socket
 
 
 
-context = { "routers" : [] }
+context = { "routers"   : [],
+            "processes" : {} }
 
 
 
@@ -77,6 +78,7 @@ def make_test_dir ( ) :
     os.mkdir ( test_dir )
     os.mkdir ( test_dir + "/config" )
     context['test_dir'] = test_dir
+    print ( f"Test dir is |{test_dir}|\n" )
    
     
 def make_router ( command ) :
@@ -108,8 +110,8 @@ def make_router ( command ) :
 
 
 
-def start_router ( name ) :
-    config_file_name = context['test_dir'] + "/config/" + name + ".conf"
+def start_router ( router_name ) :
+    config_file_name = context['test_dir'] + "/config/" + router_name + ".conf"
     router_env = dict(os.environ)
     router_env["LD_LIBRARY_PATH"] = context['dispatch_install'] + "/lib:" + context['proton_install'] + "/lib64"
     router_env["PYTHONPATH"] = context['dispatch_install'] + "/lib/qpid-dispatch/python:" + context['dispatch_install'] + "/lib/python3.9/site-packages"
@@ -120,29 +122,35 @@ def start_router ( name ) :
     print ( f"export LD_LIBRARY_PATH={router_env['LD_LIBRARY_PATH']}\n" )
     print ( f"command: {command}\n" )
 
-    output_file_name = context['test_dir'] + "/" + name + ".output"
+    output_file_name = context['test_dir'] + "/" + router_name + ".output"
 
     output_file = open ( output_file_name, "w" ) 
     process = subprocess.Popen ( command, 
                                  env = router_env,
                                  stderr = output_file )
-
-    print ( "Is it running?\n" )
-
-    time.sleep ( 10 )
-
-    process.terminate()
-    output_file.close()
+    context['processes'][router_name] = process
 
 
 
+def stop_router ( name ) :
+    router_process = context['processes'][name]
+    #print ( f"stopping router: |{router_process}|\n")
+    router_process.terminate()
 
 
 def start ( ) :
     print ( "Starting!\n" )
     for router in context['routers'] :
       start_router ( router )
-      print ( f"started router {router}\n" )
+      print ( f"Started router {router}.\n" )
+
+
+
+def stop ( ) :
+    print ( "Stopping!\n" )
+    for router in context['routers'] :
+      stop_router ( router )
+      print ( f"Stopped router {router}.\n" )
 
 
 
@@ -161,6 +169,8 @@ def read_commands ( file_name ) :
         time.sleep ( int(words[1]) )
       elif words[0] == 'start' :
         start ( )
+      elif words[0] == 'stop' :
+        stop ( )
       else :
         print ( f"Unknown command: |{words[0]}|\n" )
 
