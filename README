@@ -5,12 +5,16 @@ This is the first testable version.
 
 Do this:
 
+  0. There should be a qdrouterd executable in your path.
+
   1. Define the following environment variables:
      ( examples from my system )
 
     export STEEL_RAIN_PROTON_ROOT=/home/mick/latest/qpid-proton
     export STEEL_RAIN_PROTON_INSTALL=/home/mick/latest/qpid-proton/install
     export STEEL_RAIN_DISPATCH_INSTALL=/home/mick/latest/qpid-dispatch/install
+
+
 
 
   2. go into the scripts directory and run:
@@ -30,5 +34,41 @@ Do this:
             building client direct
             -------------------------------
 
+            -------------------------------
+            building client receive
+            -------------------------------
+
+     And now the ../clients directory should have three 
+     executables in it.
 
 
+  3. Now we are ready to try the simple test.
+     In your current directory ( steel-rain/scripts ) try this:
+
+                 ./r
+
+     That will run steel-rain with a simple command script 
+     that just starts a router, pauses, and kills it.
+
+     You should see a bunch of output that indicates it started
+     a router named A, paused 5 seconds, and then stopped it.
+
+     There should also be a newly-created directory 
+     called steel-rain/test, with a subdirectory under it
+     called something along the lines of:
+
+                2022_01_12_15_08_04
+
+     ( Except with the current date and time. )
+
+     Look in there.
+
+     You should see a file called A.output .
+     In that file, you should see normal-looking router output.
+
+
+
+     Please let me know what happens!
+
+
+ 

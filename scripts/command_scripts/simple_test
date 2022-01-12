@@ -1,5 +1,5 @@
 echo Simple Test
 router A 4 
 start
-pause 60
+pause 5
 stop
