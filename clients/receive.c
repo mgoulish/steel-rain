@@ -99,6 +99,7 @@ report ( app_data_t * app )
   printf("%d messages received\n", app->received);
   printf("%d  bytes received\n", bytes_received);
   duration = stop_time - start_time;
+  fprintf ( stdout, "%lf %lf %lf\n", start_time, stop_time, duration);
   Bps = (double) bytes_received / duration;
   Mps = (double) app->received  / duration;
 
@@ -163,6 +164,13 @@ static bool handle(app_data_t* app, pn_event_t* event) {
          pn_condition_format(pn_link_condition(l), "broker", "PN_DELIVERY error: %s", pn_code(recv));
          pn_link_close(l);               /* Unexpected error, close the link */
        } else if (!pn_delivery_partial(d)) { /* Message is complete */
+
+         /* We got a message! */
+         if ( app->received == 0 ) 
+         {
+           start_time = get_timestamp ( );
+         }
+
          decode_message(*m);
          *m = pn_rwbytes_null;  /* Reset the buffer for the next message*/
          /* Accept the delivery */

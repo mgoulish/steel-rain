@@ -10,8 +10,7 @@ import socket
 
 
 
-context = { "routers"            : [],
-            "router_processes"   : {},
+context = { "routers"            : {},
             "receiver_processes" : {},
             "sender_processes"   : {} }
 
@@ -86,30 +85,32 @@ def make_test_dir ( ) :
    
     
 def make_router ( command ) :
-    name = command[0]
+    router_name = command[0]
     threads = command[1]
     # TODO -- store and use this!
     port = get_open_port()
-    config_file_name = context['test_dir'] + "/config/" + name + ".conf"
-    print ( f"config file: {config_file_name}" )
+    config_file_name = context['test_dir'] + "/config/" + router_name + ".conf"
     f = open ( config_file_name, "w" )
     f.write("router {\n")
     f.write( "    mode: interior\n")
-    f.write(f"    id: {name}\n")
+    f.write(f"    id: {router_name}\n")
     f.write(f"    workerThreads: {threads}\n")
-    f.write("}\n")
-    f.write("listener {\n")
-    f.write("    stripAnnotations: no\n")
-    f.write("    saslMechanisms: ANONYMOUS\n")
-    f.write("    host: 0.0.0.0\n")
-    f.write("    role: normal\n")
-    f.write("    authenticatePeer: no\n")
-    f.write("    port: 5672\n")
-    f.write("    linkCapacity: 250\n")
-    f.write("}\n")
+    f.write( "}\n")
+    f.write( "listener {\n")
+    f.write( "    stripAnnotations: no\n")
+    f.write( "    saslMechanisms: ANONYMOUS\n")
+    f.write( "    host: 0.0.0.0\n")
+    f.write( "    role: normal\n")
+    f.write( "    authenticatePeer: no\n")
+    f.write(f"    port: {port}\n")
+    f.write( "    linkCapacity: 250\n")
+    f.write( "}\n")
     f.close()
 
-    context["routers"].append ( name )
+    # Start a new dictionary for this router.
+    context["routers"][router_name] = {}
+    context["routers"][router_name]['port'] = port
+
     print ( f"list of routers is now: |{context['routers']}|\n" )
 
 
@@ -130,11 +131,11 @@ def make_env ( ) :
 
 
 
-def start_sender ( ) :
-
+def start_sender ( router_name ) :
     sender_name = 'send'
     output_file_name = context['test_dir'] + "/" + sender_name + ".output"
-    command = [ '../clients/send' ]
+    port = str(context['routers'][router_name]['port'])
+    command = [ '../clients/send', 'port', port ]
     output_file_name = context['test_dir'] + "/" + sender_name + ".output"
     output_file = open ( output_file_name, "w" ) 
     process = subprocess.Popen ( command, 
@@ -143,11 +144,12 @@ def start_sender ( ) :
     context['sender_processes'][sender_name] = process
 
 
-def start_receiver ( ) :
+def start_receiver ( router_name ) :
     # TODO : Get named receivers.
     receiver_name = 'recv'
     output_file_name = context['test_dir'] + "/" + receiver_name + ".output"
-    command = [ '../clients/receive' ]
+    port = str(context['routers'][router_name]['port'])
+    command = [ '../clients/receive', 'port', port ]
     output_file_name = context['test_dir'] + "/" + receiver_name + ".output"
     output_file = open ( output_file_name, "w" ) 
     process = subprocess.Popen ( command, 
@@ -169,13 +171,13 @@ def start_router ( router_name ) :
     process = subprocess.Popen ( command, 
                                  env = make_env(),
                                  stderr = output_file )
-    context['router_processes'][router_name] = process
+    context['routers'][router_name]['process'] = process
 
 
 
-def stop_router ( name ) :
-    router_process = context['router_processes'][name]
-    #print ( f"stopping router: |{router_process}|\n")
+def stop_router ( router_name ) :
+    print ( f"stopping router: |{router_name}|\n")
+    router_process = context['routers'][router_name]['process']
     router_process.terminate()
 
 
@@ -214,9 +216,11 @@ def read_commands ( file_name ) :
       elif words[0] == 'stop' :
         stop ( )
       elif words[0] == 'recv' :
-        start_receiver ( )
+        # Pass router name for recv to connect to.
+        start_receiver ( words[1] ) 
       elif words[0] == 'send' :
-        start_sender ( )
+        # Pass router name for send to connect to.
+        start_sender ( words[1] )
       else :
         print ( f"Unknown command: |{words[0]}|\n" )
 
