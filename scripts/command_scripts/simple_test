@@ -1,5 +1,9 @@
 echo Simple Test
 router A 4 
-start
+start_routers
 pause 5
+recv
+pause 5
+send
+pause 20
 stop

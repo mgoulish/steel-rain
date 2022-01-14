@@ -10,8 +10,10 @@ import socket
 
 
 
-context = { "routers"   : [],
-            "processes" : {} }
+context = { "routers"            : [],
+            "router_processes"   : {},
+            "receiver_processes" : {},
+            "sender_processes"   : {} }
 
 
 
@@ -24,8 +26,10 @@ def get_open_port():
         return port
 
 
+
 def find_router ( ) :
     context['router'] = shutil.which ( 'qdrouterd' )
+
 
 
 def check_env ( ):
@@ -84,6 +88,7 @@ def make_test_dir ( ) :
 def make_router ( command ) :
     name = command[0]
     threads = command[1]
+    # TODO -- store and use this!
     port = get_open_port()
     config_file_name = context['test_dir'] + "/config/" + name + ".conf"
     print ( f"config file: {config_file_name}" )
@@ -110,45 +115,72 @@ def make_router ( command ) :
 
 
 
-def start_receiver ( ) :
-    command = [ "../clients/receive" ]
-    # Do I really not need env???
+def make_env ( ) :
+    new_env = dict(os.environ)
+    new_env["LD_LIBRARY_PATH"] = context['dispatch_install'] + \
+                                 "/lib:"                     + \
+                                 context['proton_install']   + \
+                                 "/lib64"
 
+    new_env["PYTHONPATH"] = context['dispatch_install']  + \
+                            "/lib/qpid-dispatch/python:" + \
+                            context['dispatch_install']  + \
+                            "/lib/python3.9/site-packages"
+    return new_env
+
+
+
+def start_sender ( ) :
+
+    sender_name = 'send'
+    output_file_name = context['test_dir'] + "/" + sender_name + ".output"
+    command = [ '../clients/send' ]
+    output_file_name = context['test_dir'] + "/" + sender_name + ".output"
+    output_file = open ( output_file_name, "w" ) 
+    process = subprocess.Popen ( command, 
+                                 env = make_env(),
+                                 stdout = output_file )
+    context['sender_processes'][sender_name] = process
+
+
+def start_receiver ( ) :
     # TODO : Get named receivers.
-    output_file_name = context['test_dir'] + "/" + router_name + ".output"
+    receiver_name = 'recv'
+    output_file_name = context['test_dir'] + "/" + receiver_name + ".output"
+    command = [ '../clients/receive' ]
+    output_file_name = context['test_dir'] + "/" + receiver_name + ".output"
+    output_file = open ( output_file_name, "w" ) 
+    process = subprocess.Popen ( command, 
+                                 env = make_env(),
+                                 stdout = output_file )
+    context['receiver_processes'][receiver_name] = process
+
 
 
 
 
 def start_router ( router_name ) :
     config_file_name = context['test_dir'] + "/config/" + router_name + ".conf"
-    router_env = dict(os.environ)
-    router_env["LD_LIBRARY_PATH"] = context['dispatch_install'] + "/lib:" + context['proton_install'] + "/lib64"
-    router_env["PYTHONPATH"] = context['dispatch_install'] + "/lib/qpid-dispatch/python:" + context['dispatch_install'] + "/lib/python3.9/site-packages"
-
     command = [ context['router'], '--config', config_file_name ]
-
-    #print ( f"export PYTHONPATH={router_env['PYTHONPATH']}\n" )
-    #print ( f"export LD_LIBRARY_PATH={router_env['LD_LIBRARY_PATH']}\n" )
-    #print ( f"command: {command}\n" )
 
     output_file_name = context['test_dir'] + "/" + router_name + ".output"
 
     output_file = open ( output_file_name, "w" ) 
     process = subprocess.Popen ( command, 
-                                 env = router_env,
+                                 env = make_env(),
                                  stderr = output_file )
-    context['processes'][router_name] = process
+    context['router_processes'][router_name] = process
 
 
 
 def stop_router ( name ) :
-    router_process = context['processes'][name]
+    router_process = context['router_processes'][name]
     #print ( f"stopping router: |{router_process}|\n")
     router_process.terminate()
 
 
-def start ( ) :
+
+def start_routers ( ) :
     print ( "Starting!\n" )
     for router in context['routers'] :
       start_router ( router )
@@ -177,12 +209,14 @@ def read_commands ( file_name ) :
       elif words[0] == 'pause' :
         print ( f"pause for {words[1]} seconds.\n" )
         time.sleep ( int(words[1]) )
-      elif words[0] == 'start' :
-        start ( )
+      elif words[0] == 'start_routers' :
+        start_routers ( )
       elif words[0] == 'stop' :
         stop ( )
       elif words[0] == 'recv' :
         start_receiver ( )
+      elif words[0] == 'send' :
+        start_sender ( )
       else :
         print ( f"Unknown command: |{words[0]}|\n" )
 

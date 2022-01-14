@@ -208,7 +208,7 @@ parse_args ( int argc, char **argv, struct app_data_t * app )
   app->host          = "";
   app->port          = "amqp";
   app->address       = "examples";
-  app->message_count = 1000000;
+  app->message_count = 100000;
   app->len           = 100;
 
   // Read command line.

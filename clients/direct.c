@@ -155,8 +155,8 @@ report ( app_data_t * app )
   Bps = (double) bytes_received / duration;
   Mps = (double) app->received  / duration;
 
-  fprintf ( stderr, "bps = %.0f\n", 8 * Bps );
-  fprintf ( stderr, "Mps = %.0f\n", Mps );
+  fprintf ( stdout, "bps = %.0f\n", 8 * Bps );
+  fprintf ( stdout, "Mps = %.0f\n", Mps );
 }
 
 
@@ -381,8 +381,8 @@ parse_args ( int argc, char **argv, struct app_data_t * app )
   app->host             = "";
   app->port             = "amqp";
   app->address          = "examples";
-  app->message_count    = 1000000;
-  app->report_frequency = 1000000000;
+  app->message_count    = 100000;
+  app->report_frequency = 1000000;
 
   // Read command line.
   for ( int i = 1; i < argc; ++ i )
