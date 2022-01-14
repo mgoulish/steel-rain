@@ -275,6 +275,6 @@ int main(int argc, char **argv) {
   free(app.message_buffer.start);
   pn_message_free(app.message);
 
-  fprintf ( stderr, "start time was %.6f\n", start_time );
+  fprintf ( stdout, "start time was %.6f\n", start_time );
   return exit_code;
 }

@@ -131,11 +131,11 @@ def make_env ( ) :
 
 
 
-def start_sender ( router_name ) :
+def start_sender ( router_name, addr ) :
     sender_name = 'send'
     output_file_name = context['test_dir'] + "/" + sender_name + ".output"
     port = str(context['routers'][router_name]['port'])
-    command = [ '../clients/send', 'port', port ]
+    command = [ '../clients/send', 'port', port, 'address', addr ]
     output_file_name = context['test_dir'] + "/" + sender_name + ".output"
     output_file = open ( output_file_name, "w" ) 
     process = subprocess.Popen ( command, 
@@ -144,12 +144,11 @@ def start_sender ( router_name ) :
     context['sender_processes'][sender_name] = process
 
 
-def start_receiver ( router_name ) :
-    # TODO : Get named receivers.
+def start_receiver ( router_name, addr ) :
     receiver_name = 'recv'
     output_file_name = context['test_dir'] + "/" + receiver_name + ".output"
     port = str(context['routers'][router_name]['port'])
-    command = [ '../clients/receive', 'port', port ]
+    command = [ '../clients/receive', 'port', port, 'address', addr ]
     output_file_name = context['test_dir'] + "/" + receiver_name + ".output"
     output_file = open ( output_file_name, "w" ) 
     process = subprocess.Popen ( command, 
@@ -216,11 +215,11 @@ def read_commands ( file_name ) :
       elif words[0] == 'stop' :
         stop ( )
       elif words[0] == 'recv' :
-        # Pass router name for recv to connect to.
-        start_receiver ( words[1] ) 
+        # Pass router name and addr.
+        start_receiver ( words[1], words[2] ) 
       elif words[0] == 'send' :
-        # Pass router name for send to connect to.
-        start_sender ( words[1] )
+        # Pass router name and addr.
+        start_sender ( words[1], words[2] )
       else :
         print ( f"Unknown command: |{words[0]}|\n" )
 
