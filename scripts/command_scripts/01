@@ -1,0 +1,5 @@
+echo Steel Rain 01: Mayhem
+router A 4 
+addresses 10
+pause 5
+stop
