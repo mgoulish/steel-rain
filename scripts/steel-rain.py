@@ -10,9 +10,10 @@ import socket
 
 
 
-context = { "routers"            : {},
-            "receiver_processes" : {},
-            "sender_processes"   : {} }
+context = { "routers"   : {},
+            "receivers" : {},
+            "senders"   : {},
+            "addresses" : [] }
 
 
 
@@ -141,7 +142,7 @@ def start_sender ( router_name, addr ) :
     process = subprocess.Popen ( command, 
                                  env = make_env(),
                                  stdout = output_file )
-    context['sender_processes'][sender_name] = process
+    context['senders'][sender_name] = process
 
 
 def start_receiver ( router_name, addr ) :
@@ -154,7 +155,7 @@ def start_receiver ( router_name, addr ) :
     process = subprocess.Popen ( command, 
                                  env = make_env(),
                                  stdout = output_file )
-    context['receiver_processes'][receiver_name] = process
+    context['receivers'][receiver_name] = process
 
 
 
@@ -175,9 +176,12 @@ def start_router ( router_name ) :
 
 
 def stop_router ( router_name ) :
-    print ( f"stopping router: |{router_name}|\n")
-    router_process = context['routers'][router_name]['process']
-    router_process.terminate()
+    if 'process' in context['routers'][router_name] :
+        print ( f"stopping router: |{router_name}|\n")
+        router_process = context['routers'][router_name]['process']
+        router_process.terminate()
+    else :
+        print ( f"Not stopping router |{router_name}|, because it was not started.\n")
 
 
 
@@ -193,9 +197,13 @@ def stop ( ) :
     print ( "Stopping!\n" )
     for router in context['routers'] :
       stop_router ( router )
-      print ( f"Stopped router {router}.\n" )
 
 
+def make_addresses ( n ) :
+    print ( f"Making {n} addresses.\n" )
+    for i in range(int(n)) :
+      context['addresses'].append ( "addr_" + str(i+1) )
+    print ( f"There are now {len(context['addresses'])} addresses.\n" )
 
 def read_commands ( file_name ) :
     with open(file_name) as f:
@@ -220,6 +228,8 @@ def read_commands ( file_name ) :
       elif words[0] == 'send' :
         # Pass router name and addr.
         start_sender ( words[1], words[2] )
+      elif words[0] == 'addresses' :
+        make_addresses ( words[1] )
       else :
         print ( f"Unknown command: |{words[0]}|\n" )
 
