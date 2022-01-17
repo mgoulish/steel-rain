@@ -7,13 +7,16 @@ import shutil
 import time
 import datetime
 import socket
+import random
 
 
 
-context = { "routers"   : {},
-            "receivers" : {},
-            "senders"   : {},
-            "addresses" : [] }
+context = { "routers"        : {},
+            "receivers"      : {},
+            "senders"        : {},
+            "addresses"      : [],
+            "sender_count"   : 0,
+            "receiver_count" : 0 }
 
 
 
@@ -84,6 +87,7 @@ def make_test_dir ( ) :
     context['test_dir'] = test_dir
     print ( f"Test dir is |{test_dir}|\n" )
    
+
     
 def make_router ( command ) :
     router_name = command[0]
@@ -117,6 +121,7 @@ def make_router ( command ) :
 
 
 
+# All the executables use this environment.
 def make_env ( ) :
     new_env = dict(os.environ)
     new_env["LD_LIBRARY_PATH"] = context['dispatch_install'] + \
@@ -132,17 +137,53 @@ def make_env ( ) :
 
 
 
-def start_sender ( router_name, addr ) :
-    sender_name = 'send'
-    output_file_name = context['test_dir'] + "/" + sender_name + ".output"
-    port = str(context['routers'][router_name]['port'])
-    command = [ '../clients/send', 'port', port, 'address', addr ]
-    output_file_name = context['test_dir'] + "/" + sender_name + ".output"
-    output_file = open ( output_file_name, "w" ) 
-    process = subprocess.Popen ( command, 
-                                 env = make_env(),
-                                 stdout = output_file )
-    context['senders'][sender_name] = process
+def make_senders ( router_name, n ) :
+    for i in range(int(n)) :
+        # Make a dictionary for this sender.
+        context['sender_count'] += 1
+        sender_name = 'send' + str(context['sender_count'])
+        context['senders'][sender_name] = {}
+
+        # Get the stuff we will need to start it.
+        context['senders'][sender_name]['router'] = router_name
+        output_file_name = context['test_dir'] + "/" + sender_name + ".output"
+        context['senders'][sender_name]['output_file_name'] = output_file_name
+
+        port = str(context['routers'][router_name]['port'])
+        context['senders'][sender_name]['port'] = port
+
+        # Choose the sender's address randomly.
+        addr = random.choice ( context['addresses'] )
+        context['senders'][sender_name]['addr'] = addr
+
+        #output_file = open ( output_file_name, "w" ) 
+        #process = subprocess.Popen ( command, 
+                                     #env = make_env(),
+                                     #stdout = output_file )
+        #context['senders'][sender_name] = {}
+        #context['senders'][sender_name]['pid'] = process
+
+
+
+def make_receivers ( router_name, n ) :
+    for i in range(int(n)) :
+        # Make a dictionary for this receiver.
+        context['receiver_count'] += 1
+        receiver_name = 'recv' + str(context['receiver_count'])
+        context['receivers'][receiver_name] = {}
+
+        # Get the stuff we will need to start it.
+        context['receivers'][receiver_name]['router'] = router_name
+        output_file_name = context['test_dir'] + "/" + receiver_name + ".output"
+        context['receivers'][receiver_name]['output_file_name'] = output_file_name
+
+        port = str(context['routers'][router_name]['port'])
+        context['receivers'][receiver_name]['port'] = port
+
+        # Choose the sender's address randomly.
+        addr = random.choice ( context['addresses'] )
+        context['receivers'][receiver_name]['addr'] = addr
+
 
 
 def start_receiver ( router_name, addr ) :
@@ -199,11 +240,14 @@ def stop ( ) :
       stop_router ( router )
 
 
+
 def make_addresses ( n ) :
     print ( f"Making {n} addresses.\n" )
     for i in range(int(n)) :
       context['addresses'].append ( "addr_" + str(i+1) )
     print ( f"There are now {len(context['addresses'])} addresses.\n" )
+
+
 
 def read_commands ( file_name ) :
     with open(file_name) as f:
@@ -222,12 +266,12 @@ def read_commands ( file_name ) :
         start_routers ( )
       elif words[0] == 'stop' :
         stop ( )
-      elif words[0] == 'recv' :
-        # Pass router name and addr.
-        start_receiver ( words[1], words[2] ) 
-      elif words[0] == 'send' :
-        # Pass router name and addr.
-        start_sender ( words[1], words[2] )
+      elif words[0] == 'receivers' :
+        make_receivers ( words[1], words[2] ) 
+        print ( f"receivers: {context['receivers']}\n" )
+      elif words[0] == 'senders' :
+        make_senders ( words[1], words[2] )
+        print ( f"senders: {context['senders']}\n" )
       elif words[0] == 'addresses' :
         make_addresses ( words[1] )
       else :
