@@ -85,14 +85,13 @@ def make_test_dir ( ) :
     os.mkdir ( test_dir )
     os.mkdir ( test_dir + "/config" )
     context['test_dir'] = test_dir
-    print ( f"Test dir is |{test_dir}|\n" )
+    print ( f"Test dir is |{test_dir}|" )
    
 
     
 def make_router ( command ) :
     router_name = command[0]
     threads = command[1]
-    # TODO -- store and use this!
     port = get_open_port()
     config_file_name = context['test_dir'] + "/config/" + router_name + ".conf"
     f = open ( config_file_name, "w" )
@@ -116,7 +115,7 @@ def make_router ( command ) :
     context["routers"][router_name] = {}
     context["routers"][router_name]['port'] = port
 
-    print ( f"list of routers is now: |{context['routers']}|\n" )
+    print ( f"list of routers is now: |{context['routers']}|" )
 
 
 
@@ -156,12 +155,6 @@ def make_senders ( router_name, n ) :
         addr = random.choice ( context['addresses'] )
         context['senders'][sender_name]['addr'] = addr
 
-        #output_file = open ( output_file_name, "w" ) 
-        #process = subprocess.Popen ( command, 
-                                     #env = make_env(),
-                                     #stdout = output_file )
-        #context['senders'][sender_name] = {}
-        #context['senders'][sender_name]['pid'] = process
 
 
 
@@ -218,34 +211,72 @@ def start_router ( router_name ) :
 
 def stop_router ( router_name ) :
     if 'process' in context['routers'][router_name] :
-        print ( f"stopping router: |{router_name}|\n")
         router_process = context['routers'][router_name]['process']
         router_process.terminate()
+        print ( f"Stopped router: |{router_name}|")
     else :
-        print ( f"Not stopping router |{router_name}|, because it was not started.\n")
+        print ( f"Not stopping router |{router_name}|, because it was not started.")
+
+
+
+def stop_receiver ( recv ) :
+    if 'process' in context['receivers'][recv] :
+        proc = context['receivers'][recv]['process']
+        proc.terminate()
+        print ( f"Stopped receiver: |{recv}|")
+    else :
+        print ( f"Not stopping receiver |{recv}|, because it was not started.")
 
 
 
 def start_routers ( ) :
-    print ( "Starting!\n" )
     for router in context['routers'] :
       start_router ( router )
-      print ( f"Started router {router}.\n" )
+      print ( f"Started router |{router}|." )
+
+
+
+def start_receivers ( ) :
+    for name in context['receivers'] :
+        port   = context['receivers'][name]['port']
+        out    = context['receivers'][name]['output_file_name']
+        addr   = context['receivers'][name]['addr']
+        output_file = open ( out, "w" ) 
+        command = [ '../clients/receive', \
+                    'port', port,         \
+                    'address', addr ]
+        proc = subprocess.Popen ( command, 
+                                  env = make_env(),
+                                  stdout = output_file )
+        context['receivers'][name]['process'] = proc
+        print ( f"Started receiver {name} {proc.pid}" )
+
+
+
+def start ( ) :
+    print ( "Starting!" )
+    start_routers ( )
+    delay = 5
+    print ( f"Waiting {delay} seconds for routers." )
+    time.sleep ( delay )
+    start_receivers ( )
 
 
 
 def stop ( ) :
-    print ( "Stopping!\n" )
+    print ( "Stopping!" )
+    for recv in context['receivers'] :
+      stop_receiver ( recv )
     for router in context['routers'] :
       stop_router ( router )
 
 
 
 def make_addresses ( n ) :
-    print ( f"Making {n} addresses.\n" )
+    print ( f"Making {n} addresses." )
     for i in range(int(n)) :
       context['addresses'].append ( "addr_" + str(i+1) )
-    print ( f"There are now {len(context['addresses'])} addresses.\n" )
+    print ( f"There are now {len(context['addresses'])} addresses." )
 
 
 
@@ -260,22 +291,22 @@ def read_commands ( file_name ) :
       elif words[0] == 'router' :
         make_router ( words[1:] )
       elif words[0] == 'pause' :
-        print ( f"pause for {words[1]} seconds.\n" )
+        print ( f"pause for {words[1]} seconds." )
         time.sleep ( int(words[1]) )
-      elif words[0] == 'start_routers' :
-        start_routers ( )
+      elif words[0] == 'start' :
+        start ( )
       elif words[0] == 'stop' :
         stop ( )
       elif words[0] == 'receivers' :
         make_receivers ( words[1], words[2] ) 
-        print ( f"receivers: {context['receivers']}\n" )
+        #print ( f"receivers: {context['receivers']}" )
       elif words[0] == 'senders' :
         make_senders ( words[1], words[2] )
-        print ( f"senders: {context['senders']}\n" )
+        #print ( f"senders: {context['senders']}" )
       elif words[0] == 'addresses' :
         make_addresses ( words[1] )
       else :
-        print ( f"Unknown command: |{words[0]}|\n" )
+        print ( f"Unknown command: |{words[0]}|" )
 
 
 

@@ -3,5 +3,6 @@ router     A     4
 addresses       10
 senders    A    10
 receivers  A    10
-pause 5
+start
+pause 15
 stop
