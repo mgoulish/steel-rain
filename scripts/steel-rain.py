@@ -302,6 +302,8 @@ def read_commands ( file_name ) :
         content = f.readlines()
     for line in content :
       words = line.split()
+      if words[0] == '#' :
+        continue
       if words[0] == 'echo' :
         s = " "
         print(s.join(words[1:]))

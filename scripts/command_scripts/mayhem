@@ -1,3 +1,4 @@
+# The Mayhem test randomly kills and restarts clients.
 echo Steel Rain : Mayhem
 router     A     4 
 addresses       10
