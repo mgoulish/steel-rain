@@ -52,8 +52,17 @@ def check_env ( ):
       sys.exit(1)
 
 
-    # Make sure that the required directories actually exist.
+    # Make sure we have the executables we need.
+    if not os.path.isfile ( '../clients/send' ) :
+      print ( 'The send executable does not exist. Run "init.py".' )
+      sys.exit(1)
 
+    if not os.path.isfile ( '../clients/receive' ) :
+      print ( 'The receive executable does not exist. Run "init.py".' )
+      sys.exit(1)
+
+
+    # Make sure that the required directories actually exist.
     if False == os.path.isdir ( dispatch_install ) :
       print ( f"{dispatch_install} directory does not exist." )
       sys.exit(1)
