@@ -145,17 +145,19 @@ def make_env ( ) :
 
 
 
-def make_senders ( router_name, n ) :
+def make_senders ( router_name, n, n_messages ) :
     for i in range(int(n)) :
         # Make a dictionary for this sender.
         context['sender_count'] += 1
-        sender_name = 'send' + str(context['sender_count'])
+        sender_name = 'send_' + str(context['sender_count'])
         context['senders'][sender_name] = {}
+        print ( f'Made sender |{sender_name}|.' )
 
         # Get the stuff we will need to start it.
         context['senders'][sender_name]['router'] = router_name
         output_file_name = context['test_dir'] + "/" + sender_name + ".output"
         context['senders'][sender_name]['output_file_name'] = output_file_name
+        context['senders'][sender_name]['n_messages'] = n_messages
 
         port = str(context['routers'][router_name]['port'])
         context['senders'][sender_name]['port'] = port
@@ -166,18 +168,20 @@ def make_senders ( router_name, n ) :
 
 
 
-
-def make_receivers ( router_name, n ) :
+def make_receivers ( router_name, n, n_messages, report_freq ) :
     for i in range(int(n)) :
         # Make a dictionary for this receiver.
         context['receiver_count'] += 1
-        receiver_name = 'recv' + str(context['receiver_count'])
+        receiver_name = 'recv_' + str(context['receiver_count'])
         context['receivers'][receiver_name] = {}
+        print ( f'Made receiver |{receiver_name}|.' )
 
         # Get the stuff we will need to start it.
         context['receivers'][receiver_name]['router'] = router_name
         output_file_name = context['test_dir'] + "/" + receiver_name + ".output"
         context['receivers'][receiver_name]['output_file_name'] = output_file_name
+        context['receivers'][receiver_name]['n_messages'] = n_messages
+        context['receivers'][receiver_name]['report'] = report_freq
 
         port = str(context['routers'][router_name]['port'])
         context['receivers'][receiver_name]['port'] = port
@@ -244,10 +248,14 @@ def start_receivers ( ) :
         port   = context['receivers'][name]['port']
         out    = context['receivers'][name]['output_file_name']
         addr   = context['receivers'][name]['addr']
+        n_msg  = context['receivers'][name]['n_messages']
+
         output_file = open ( out, "w" ) 
         command = [ '../clients/receive', \
                     'port', port,         \
-                    'address', addr ]
+                    'address', addr,      \
+                    'message_count', n_msg ]
+
         proc = subprocess.Popen ( command, 
                                   env = make_env(),
                                   stdout = output_file )
@@ -261,10 +269,14 @@ def start_senders ( ) :
         port   = context['senders'][name]['port']
         out    = context['senders'][name]['output_file_name']
         addr   = context['senders'][name]['addr']
+        n_msg  = context['senders'][name]['n_messages']
+
         output_file = open ( out, "w" ) 
         command = [ '../clients/send', \
                     'port', port,      \
-                    'address', addr ]
+                    'address', addr,   \
+                    'message_count', n_msg ]
+
         proc = subprocess.Popen ( command, 
                                   env = make_env(),
                                   stdout = output_file )
@@ -326,10 +338,10 @@ def read_commands ( file_name ) :
       elif words[0] == 'stop' :
         stop ( )
       elif words[0] == 'receivers' :
-        make_receivers ( words[1], words[2] ) 
+        make_receivers ( words[1], words[2], words[3], words[4] ) 
         #print ( f"receivers: {context['receivers']}" )
       elif words[0] == 'senders' :
-        make_senders ( words[1], words[2] )
+        make_senders ( words[1], words[2], words[3] )
         #print ( f"senders: {context['senders']}" )
       elif words[0] == 'addresses' :
         make_addresses ( words[1] )

@@ -2,8 +2,9 @@
 echo Steel Rain : Mayhem
 router     A     4 
 addresses       10
-senders    A    10
-receivers  A    10
+# Args for making clients: which router, how many clients, n_messages
+senders    A    10    1000000000
+receivers  A    10    1000000000    100000
 start
-pause 15
+pause 20
 stop

@@ -261,6 +261,13 @@ int main(int argc, char **argv) {
 
   parse_args ( argc, argv, & app );
 
+  fprintf ( stdout, "len:           %d\n", app.len );
+  fprintf ( stdout, "message_count: %d\n", app.message_count );
+  fprintf ( stdout, "address:       %s\n", app.address );
+  fprintf ( stdout, "port:          %s\n", app.port );
+  fprintf ( stdout, "host:          %s\n", app.host );
+  fflush  ( stdout );
+
   app.content = (char *) malloc(app.len);
   memset ( app.content, 'x', app.len );
   app.message = pn_message();

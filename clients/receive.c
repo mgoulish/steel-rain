@@ -105,6 +105,7 @@ report ( app_data_t * app )
 
   fprintf ( stdout, "bps = %.0f\n", 8 * Bps );
   fprintf ( stdout, "Mps = %.0f\n", Mps );
+  fflush(stdout);
 }
 
 static void decode_message(pn_rwbytes_t data) {
@@ -311,6 +312,13 @@ int main(int argc, char **argv) {
   char addr[PN_MAX_ADDR];
 
   parse_args ( argc, argv, & app );
+  fprintf ( stdout, "message_count: %d\n", app.message_count );
+  fprintf ( stdout, "report:        %d\n", app.report_frequency );
+  fprintf ( stdout, "address:       %s\n", app.address );
+  fprintf ( stdout, "port:          %s\n", app.port );
+  fprintf ( stdout, "host:          %s\n", app.host );
+  fflush  ( stdout );
+
 
   /* Create the proactor and connect */
   app.proactor = pn_proactor();
