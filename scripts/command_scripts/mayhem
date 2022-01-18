@@ -6,5 +6,7 @@ addresses       10
 senders    A    10    1000000000
 receivers  A    10    1000000000    100000
 start
-pause 20
+pause 5
+kill_and_replace_clients 10
+pause 5
 stop

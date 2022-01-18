@@ -15,6 +15,7 @@ context = { "routers"        : {},
             "receivers"      : {},
             "senders"        : {},
             "addresses"      : [],
+            "clients_list"   : [],
             "sender_count"   : 0,
             "receiver_count" : 0 }
 
@@ -150,6 +151,7 @@ def make_senders ( router_name, n, n_messages ) :
         # Make a dictionary for this sender.
         context['sender_count'] += 1
         sender_name = 'send_' + str(context['sender_count'])
+        context['clients_list'].append ( sender_name )
         context['senders'][sender_name] = {}
         print ( f'Made sender |{sender_name}|.' )
 
@@ -173,6 +175,7 @@ def make_receivers ( router_name, n, n_messages, report_freq ) :
         # Make a dictionary for this receiver.
         context['receiver_count'] += 1
         receiver_name = 'recv_' + str(context['receiver_count'])
+        context['clients_list'].append ( receiver_name )
         context['receivers'][receiver_name] = {}
         print ( f'Made receiver |{receiver_name}|.' )
 
@@ -243,8 +246,7 @@ def start_routers ( ) :
 
 
 
-def start_receivers ( ) :
-    for name in  context['receivers'] :
+def start_receiver ( name ) :
         port   = context['receivers'][name]['port']
         out    = context['receivers'][name]['output_file_name']
         addr   = context['receivers'][name]['addr']
@@ -260,28 +262,39 @@ def start_receivers ( ) :
                                   env = make_env(),
                                   stdout = output_file )
         context['receivers'][name]['process'] = proc
-        print ( f"Started receiver {name} {proc.pid}" )
+        print ( f"Started receiver {name} as proc {proc.pid} on {addr}." )
+
+
+
+def start_receivers ( ) :
+    for name in  context['receivers'] :
+        start_receiver ( name )
+
+
+
+def start_sender ( name ) :
+    port   = context['senders'][name]['port']
+    out    = context['senders'][name]['output_file_name']
+    addr   = context['senders'][name]['addr']
+    n_msg  = context['senders'][name]['n_messages']
+
+    output_file = open ( out, "w" ) 
+    command = [ '../clients/send', \
+                'port', port,      \
+                'address', addr,   \
+                'message_count', n_msg ]
+
+    proc = subprocess.Popen ( command, 
+                              env = make_env(),
+                              stdout = output_file )
+    context['senders'][name]['process'] = proc
+    print ( f"Started sender {name} as proc {proc.pid} on {addr}." )
 
 
 
 def start_senders ( ) :
-    for name in  context['senders'] :
-        port   = context['senders'][name]['port']
-        out    = context['senders'][name]['output_file_name']
-        addr   = context['senders'][name]['addr']
-        n_msg  = context['senders'][name]['n_messages']
-
-        output_file = open ( out, "w" ) 
-        command = [ '../clients/send', \
-                    'port', port,      \
-                    'address', addr,   \
-                    'message_count', n_msg ]
-
-        proc = subprocess.Popen ( command, 
-                                  env = make_env(),
-                                  stdout = output_file )
-        context['senders'][name]['process'] = proc
-        print ( f"Started sender {name} {proc.pid}" )
+    for name in context['senders'] :
+        start_sender ( name )
 
 
 
@@ -346,6 +359,8 @@ def read_commands ( file_name ) :
         #print ( f"senders: {context['senders']}" )
       elif words[0] == 'addresses' :
         make_addresses ( words[1] )
+      elif words[0] == 'kill_and_replace_clients' :
+        kill_and_replace_clients ( words[1] )
       else :
         print ( f"Unknown command: |{words[0]}|" )
 
@@ -363,7 +378,36 @@ def routers_are_still_running ( ) :
     return True
 
 
+
+def kill_and_replace_clients ( n ) :
+    for i in range ( int(n) ) :
+      name = random.choice ( context['clients_list'] )
+      if name.startswith ( 'recv' ) :
+          stop_receiver ( name )
+          time.sleep ( 2 )
+          start_receiver ( name )
+          time.sleep ( 1 )
+      elif name.startswith ( 'send' ) :
+          stop_sender ( name )
+          time.sleep ( 2 )
+          start_sender ( name )
+          time.sleep ( 1 )
+      
+      print ( f"{i+1} of {n} clients have been killed and replaced." )
+
+      if not routers_are_still_running ( ) :
+          print ( "error: a routre has failed." )
+          sys.exit(1)
+
+      print ( f"Killed and replaced |{name}|" )
+      print ( f"Program has been running for {int(time.time() - context['start_time'])} seconds." )
+      print (  "------------------------------------------\n" )
+    
+
+
 # Main program ====================================
+
+context['start_time'] = time.time()
 
 find_router()
 if context['router'] == None:
