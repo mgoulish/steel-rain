@@ -7,6 +7,9 @@ senders    A    10    1000000000
 receivers  A    10    1000000000    100000
 start
 pause 5
-kill_and_replace_clients 10
+kill_and_replace_clients 1000
+echo ----------------------------------------------
+echo Halting
+echo ----------------------------------------------
 pause 5
 stop
