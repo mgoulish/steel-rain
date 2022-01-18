@@ -179,22 +179,6 @@ def make_receivers ( router_name, n ) :
 
 
 
-def start_receiver ( router_name, addr ) :
-    receiver_name = 'recv'
-    output_file_name = context['test_dir'] + "/" + receiver_name + ".output"
-    port = str(context['routers'][router_name]['port'])
-    command = [ '../clients/receive', 'port', port, 'address', addr ]
-    output_file_name = context['test_dir'] + "/" + receiver_name + ".output"
-    output_file = open ( output_file_name, "w" ) 
-    process = subprocess.Popen ( command, 
-                                 env = make_env(),
-                                 stdout = output_file )
-    context['receivers'][receiver_name] = process
-
-
-
-
-
 def start_router ( router_name ) :
     config_file_name = context['test_dir'] + "/config/" + router_name + ".conf"
     command = [ context['router'], '--config', config_file_name ]
@@ -229,6 +213,16 @@ def stop_receiver ( recv ) :
 
 
 
+def stop_sender ( send ) :
+    if 'process' in context['senders'][send] :
+        proc = context['senders'][send]['process']
+        proc.terminate()
+        print ( f"Stopped sender: |{send}|")
+    else :
+        print ( f"Not stopping sender |{send}|, because it was not started.")
+
+
+
 def start_routers ( ) :
     for router in context['routers'] :
       start_router ( router )
@@ -237,7 +231,7 @@ def start_routers ( ) :
 
 
 def start_receivers ( ) :
-    for name in context['receivers'] :
+    for name in  context['receivers'] :
         port   = context['receivers'][name]['port']
         out    = context['receivers'][name]['output_file_name']
         addr   = context['receivers'][name]['addr']
@@ -253,13 +247,34 @@ def start_receivers ( ) :
 
 
 
+def start_senders ( ) :
+    for name in  context['senders'] :
+        port   = context['senders'][name]['port']
+        out    = context['senders'][name]['output_file_name']
+        addr   = context['senders'][name]['addr']
+        output_file = open ( out, "w" ) 
+        command = [ '../clients/send', \
+                    'port', port,      \
+                    'address', addr ]
+        proc = subprocess.Popen ( command, 
+                                  env = make_env(),
+                                  stdout = output_file )
+        context['senders'][name]['process'] = proc
+        print ( f"Started sender {name} {proc.pid}" )
+
+
+
 def start ( ) :
     print ( "Starting!" )
     start_routers ( )
     delay = 5
     print ( f"Waiting {delay} seconds for routers." )
     time.sleep ( delay )
+    print ( "Starting receivers." )
     start_receivers ( )
+    time.sleep ( delay )
+    print ( "Starting senders." )
+    start_senders ( )
 
 
 
@@ -267,6 +282,8 @@ def stop ( ) :
     print ( "Stopping!" )
     for recv in context['receivers'] :
       stop_receiver ( recv )
+    for send in context['senders'] :
+      stop_sender ( send )
     for router in context['routers'] :
       stop_router ( router )
 

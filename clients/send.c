@@ -147,7 +147,7 @@ static bool handle(app_data_t* app, pn_event_t* event, char * content, int len) 
          /* Continue handling events till we receive TRANSPORT_CLOSED */
        }
      } else {
-       fprintf(stderr, "unexpected delivery state %d\n", (int)pn_delivery_remote_state(d));
+       fprintf(stdout, "unexpected delivery state %d\n", (int)pn_delivery_remote_state(d));
        pn_connection_close(pn_event_connection(event));
        exit_code=1;
      }
