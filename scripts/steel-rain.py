@@ -301,6 +301,7 @@ def start ( ) :
 
 def stop ( ) :
     print ( "Stopping!" )
+    routers_are_still_running ( )
     for recv in context['receivers'] :
       stop_receiver ( recv )
     for send in context['senders'] :
@@ -348,6 +349,18 @@ def read_commands ( file_name ) :
       else :
         print ( f"Unknown command: |{words[0]}|" )
 
+
+
+def routers_are_still_running ( ) :
+    for name in context['routers'] :
+        try :
+            os.kill ( context['routers'][name]['process'].pid, 0 )
+        except :
+            print ( f"error: router |{name}| is no longer running." )
+            return False
+            
+    print ( "All routers are still running." )
+    return True
 
 
 # Main program ====================================
