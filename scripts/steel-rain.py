@@ -368,12 +368,10 @@ def read_commands ( file_name ) :
 
 def routers_are_still_running ( ) :
     for name in context['routers'] :
-        try :
-            os.kill ( context['routers'][name]['process'].pid, 0 )
-        except :
+        result = context['routers'][name]['process'].poll()
+        if result != None :
             print ( f"error: router |{name}| is no longer running." )
             return False
-            
     print ( "All routers are still running." )
     return True
 
@@ -396,7 +394,6 @@ def kill_and_replace_clients ( n ) :
       print ( f"{i+1} of {n} clients have been killed and replaced." )
 
       if not routers_are_still_running ( ) :
-          print ( "error: a routre has failed." )
           sys.exit(1)
 
       print ( f"Killed and replaced |{name}|" )
