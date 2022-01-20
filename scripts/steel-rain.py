@@ -21,7 +21,7 @@ context = { "routers"        : {},
 
 
 
-def get_open_port():
+def find_open_port():
         s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         s.bind(("",0))
         s.listen(1)
@@ -102,9 +102,22 @@ def make_test_dir ( ) :
 def make_router ( command ) :
     router_name = command[0]
     threads = command[1]
-    port = get_open_port()
+    port = find_open_port()
     config_file_name = context['test_dir'] + "/config/" + router_name + ".conf"
-    f = open ( config_file_name, "w" )
+
+    # Start a new dictionary for this router.
+    context["routers"][router_name] = {}
+    context["routers"][router_name]['threads'] = threads
+    context["routers"][router_name]['port'] = port
+    context["routers"][router_name]['config_file_name'] = config_file_name
+
+
+
+def write_router_config ( router_name ) :
+    threads = context["routers"][router_name]['threads']
+    port    = context["routers"][router_name]['port']
+
+    f = open ( context["routers"][router_name]['config_file_name'], "w" )
     f.write("router {\n")
     f.write( "    mode: interior\n")
     f.write(f"    id: {router_name}\n")
@@ -121,11 +134,6 @@ def make_router ( command ) :
     f.write( "}\n")
     f.close()
 
-    # Start a new dictionary for this router.
-    context["routers"][router_name] = {}
-    context["routers"][router_name]['port'] = port
-
-    print ( f"list of routers is now: |{context['routers']}|" )
 
 
 
@@ -241,6 +249,7 @@ def stop_sender ( send ) :
 
 def start_routers ( ) :
     for router in context['routers'] :
+      write_router_config ( router )
       start_router ( router )
       print ( f"Started router |{router}|." )
 
@@ -332,6 +341,18 @@ def make_addresses ( n ) :
 
 
 
+# Set up connectivity between routers 1 and 2.
+# This function is called before startup, and only
+# stores information in the router data structures
+# that is used later. During startup.
+def connect ( router_1, router_2 ) :
+    print ( f"Connect router |{router_1}| to router |{router_2}|" )
+    port = find_open_port ( )
+    context['routers'][router_1]['inter_router_connector'] = port
+    context['routers'][router_2]['inter_router_listener']  = port
+
+
+
 def read_commands ( file_name ) :
     with open(file_name) as f:
         content = f.readlines()
@@ -361,6 +382,8 @@ def read_commands ( file_name ) :
         make_addresses ( words[1] )
       elif words[0] == 'kill_and_replace_clients' :
         kill_and_replace_clients ( words[1] )
+      elif words[0] == 'connect' :
+        connect ( words[1], words[2] )
       else :
         print ( f"Unknown command: |{words[0]}|" )
 
