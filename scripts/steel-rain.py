@@ -124,14 +124,33 @@ def write_router_config ( router_name ) :
     f.write(f"    workerThreads: {threads}\n")
     f.write( "}\n")
     f.write( "listener {\n")
+    f.write( "    role: normal\n")
     f.write( "    stripAnnotations: no\n")
     f.write( "    saslMechanisms: ANONYMOUS\n")
     f.write( "    host: 0.0.0.0\n")
-    f.write( "    role: normal\n")
     f.write( "    authenticatePeer: no\n")
     f.write(f"    port: {port}\n")
     f.write( "    linkCapacity: 250\n")
     f.write( "}\n")
+
+    if 'inter_router_connector' in context['routers'][router_name] :
+      port = context['routers'][router_name]['inter_router_connector']
+      f.write( "connector {\n")
+      f.write( "    role: inter-router\n")
+      f.write( "    host: 0.0.0.0\n")
+      f.write( "    saslMechanisms: ANONYMOUS\n")
+      f.write(f"    port: {port}\n")
+      f.write( "}\n")
+
+    if 'inter_router_listener' in context['routers'][router_name] :
+      port = context['routers'][router_name]['inter_router_listener']
+      f.write( "listener {\n")
+      f.write( "    role: inter-router\n")
+      f.write( "    host: 0.0.0.0\n")
+      f.write( "    saslMechanisms: ANONYMOUS\n")
+      f.write(f"    port: {port}\n") 
+      f.write( "}\n")
+
     f.close()
 
 
