@@ -4,15 +4,15 @@ echo Steel Rain : Mayhem
 router     A     4 
 router     B     4 
 connect A B
-#addresses       10
+addresses       10
 # Args for making clients: which router, how many clients, n_messages
-#senders    A    10    1000000000
-#receivers  A    10    1000000000    100000
+senders    random    10    1000000000
+receivers  random    10    1000000000    100000
 start
 pause 5
 #kill_and_replace_clients 1000
 echo ----------------------------------------------
 echo Halting
 echo ----------------------------------------------
-pause 5
+pause 60
 stop

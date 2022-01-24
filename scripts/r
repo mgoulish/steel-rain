@@ -1,4 +1,9 @@
 #! /bin/bash
 
-./steel-rain.py ./command_scripts/mayhem
+    export STEEL_RAIN_PROTON_ROOT=/home/mick/latest/qpid-proton
+    export STEEL_RAIN_PROTON_INSTALL=/home/mick/latest/qpid-proton/install
+    export STEEL_RAIN_DISPATCH_INSTALL=/home/mick/latest/qpid-dispatch/install
+
+
+./steel-rain.py ./command_scripts/mayhem_2
 

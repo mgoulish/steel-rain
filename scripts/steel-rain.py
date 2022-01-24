@@ -183,12 +183,17 @@ def make_senders ( router_name, n, n_messages ) :
         print ( f'Made sender |{sender_name}|.' )
 
         # Get the stuff we will need to start it.
-        context['senders'][sender_name]['router'] = router_name
+        chosen_router_name = router_name
+        if router_name == 'random' :
+          chosen_router_name = random.choice ( list(context['routers']) )
+          print ( f"sender {sender_name} assigned to router {chosen_router_name}" )
+
+        context['senders'][sender_name]['router'] = chosen_router_name
         output_file_name = context['test_dir'] + "/" + sender_name + ".output"
         context['senders'][sender_name]['output_file_name'] = output_file_name
         context['senders'][sender_name]['n_messages'] = n_messages
 
-        port = str(context['routers'][router_name]['port'])
+        port = str(context['routers'][chosen_router_name]['port'])
         context['senders'][sender_name]['port'] = port
 
         # Choose the sender's address randomly.
@@ -207,13 +212,18 @@ def make_receivers ( router_name, n, n_messages, report_freq ) :
         print ( f'Made receiver |{receiver_name}|.' )
 
         # Get the stuff we will need to start it.
-        context['receivers'][receiver_name]['router'] = router_name
+        chosen_router_name = router_name
+        if router_name == 'random' :
+          chosen_router_name = random.choice ( list(context['routers']) )
+          print ( f"receiver {receiver_name} assigned to router {chosen_router_name}" )
+
+        context['receivers'][receiver_name]['router'] = chosen_router_name
         output_file_name = context['test_dir'] + "/" + receiver_name + ".output"
         context['receivers'][receiver_name]['output_file_name'] = output_file_name
         context['receivers'][receiver_name]['n_messages'] = n_messages
         context['receivers'][receiver_name]['report'] = report_freq
 
-        port = str(context['routers'][router_name]['port'])
+        port = str(context['routers'][chosen_router_name]['port'])
         context['receivers'][receiver_name]['port'] = port
 
         # Choose the sender's address randomly.
@@ -377,6 +387,7 @@ def read_commands ( file_name ) :
         content = f.readlines()
     for line in content :
       words = line.split()
+
       if words[0] == '#' :
         continue
       if words[0] == 'echo' :
