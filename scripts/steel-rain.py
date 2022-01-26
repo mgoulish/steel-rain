@@ -182,7 +182,10 @@ def make_senders ( router_name, n, n_messages ) :
         context['senders'][sender_name] = {}
         print ( f'Made sender |{sender_name}|.' )
 
-        # Get the stuff we will need to start it.
+        # Store the original router name, even (especially) if
+        # it is random. We will need to know that later, if we
+        # are doing kill-and-replace.
+        context['senders'][sender_name]['router'] = router_name
         chosen_router_name = router_name
         if router_name == 'random' :
           chosen_router_name = random.choice ( list(context['routers']) )
@@ -211,13 +214,14 @@ def make_receivers ( router_name, n, n_messages, report_freq ) :
         context['receivers'][receiver_name] = {}
         print ( f'Made receiver |{receiver_name}|.' )
 
-        # Get the stuff we will need to start it.
+        # Store the original router name, even (especially) if
+        # it is random. We will need to know that later, if we
+        # are doing kill-and-replace.
+        context['receivers'][receiver_name]['router'] = router_name
         chosen_router_name = router_name
         if router_name == 'random' :
           chosen_router_name = random.choice ( list(context['routers']) )
-          print ( f"receiver {receiver_name} assigned to router {chosen_router_name}" )
 
-        context['receivers'][receiver_name]['router'] = chosen_router_name
         output_file_name = context['test_dir'] + "/" + receiver_name + ".output"
         context['receivers'][receiver_name]['output_file_name'] = output_file_name
         context['receivers'][receiver_name]['n_messages'] = n_messages
@@ -285,22 +289,27 @@ def start_routers ( ) :
 
 
 def start_receiver ( name ) :
-        port   = context['receivers'][name]['port']
-        out    = context['receivers'][name]['output_file_name']
-        addr   = context['receivers'][name]['addr']
-        n_msg  = context['receivers'][name]['n_messages']
+    chosen_router = context['receivers'][name]['router']
+    if chosen_router == "random" :
+      chosen_router = random.choice ( list(context['routers']) )
+      print ( f"receiver {name} assigned to router {chosen_router}" )
 
-        output_file = open ( out, "w" ) 
-        command = [ '../clients/receive', \
-                    'port', port,         \
-                    'address', addr,      \
-                    'message_count', n_msg ]
+    port   = str(context['routers'][chosen_router]['port'])
+    out    = context['receivers'][name]['output_file_name']
+    addr   = context['receivers'][name]['addr']
+    n_msg  = context['receivers'][name]['n_messages']
 
-        proc = subprocess.Popen ( command, 
-                                  env = make_env(),
-                                  stdout = output_file )
-        context['receivers'][name]['process'] = proc
-        print ( f"Started receiver {name} as proc {proc.pid} on {addr}." )
+    output_file = open ( out, "w" ) 
+    command = [ '../clients/receive', \
+                'port', port,         \
+                'address', addr,      \
+                'message_count', n_msg ]
+
+    proc = subprocess.Popen ( command, 
+                              env = make_env(),
+                              stdout = output_file )
+    context['receivers'][name]['process'] = proc
+    print ( f"Started receiver {name} as proc {proc.pid} on router {chosen_router} on addr {addr}." )
 
 
 
@@ -311,6 +320,11 @@ def start_receivers ( ) :
 
 
 def start_sender ( name ) :
+    chosen_router = context['senders'][name]['router']
+    if chosen_router == "random" :
+      chosen_router = random.choice ( list(context['routers']) )
+      print ( f"sender {name} assigned to router {chosen_router}" )
+
     port   = context['senders'][name]['port']
     out    = context['senders'][name]['output_file_name']
     addr   = context['senders'][name]['addr']
@@ -404,10 +418,8 @@ def read_commands ( file_name ) :
         stop ( )
       elif words[0] == 'receivers' :
         make_receivers ( words[1], words[2], words[3], words[4] ) 
-        #print ( f"receivers: {context['receivers']}" )
       elif words[0] == 'senders' :
         make_senders ( words[1], words[2], words[3] )
-        #print ( f"senders: {context['senders']}" )
       elif words[0] == 'addresses' :
         make_addresses ( words[1] )
       elif words[0] == 'kill_and_replace_clients' :
