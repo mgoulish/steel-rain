@@ -5,14 +5,13 @@ router     A     4
 router     B     4 
 connect    A     B
 addresses       10
-# Args for making clients: which router, how many clients, n_messages
-senders    random    10    1000000000
-receivers  random    10    1000000000    100000
+senders    router random    
+receivers  A 10 100000 1000000
 start
 pause 5
-kill_and_replace_clients 20
+kill_and_replace_clients 5
 echo ----------------------------------------------
 echo Halting
 echo ----------------------------------------------
-pause 60
+pause 5
 stop

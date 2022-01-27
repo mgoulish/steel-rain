@@ -21,6 +21,10 @@ context = { "routers"        : {},
 
 
 
+default_sender_args = { 'router'     : 'A', \
+                        'n_senders'  :  10, \
+                        'n_messages' :  1000000000 }
+
 def find_open_port():
         s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         s.bind(("",0))
@@ -173,8 +177,8 @@ def make_env ( ) :
 
 
 
-def make_senders ( router_name, n, n_messages ) :
-    for i in range(int(n)) :
+def make_senders ( args ) :
+    for i in range(args['n_senders']) :
         # Make a dictionary for this sender.
         context['sender_count'] += 1
         sender_name = 'send_' + str(context['sender_count'])
@@ -185,18 +189,22 @@ def make_senders ( router_name, n, n_messages ) :
         # Store the original router name, even (especially) if
         # it is random. We will need to know that later, if we
         # are doing kill-and-replace.
-        context['senders'][sender_name]['router'] = router_name
-        chosen_router_name = router_name
-        if router_name == 'random' :
-          chosen_router_name = random.choice ( list(context['routers']) )
-          print ( f"sender {sender_name} assigned to router {chosen_router_name}" )
+        context['senders'][sender_name]['router'] = args['router']
 
-        context['senders'][sender_name]['router'] = chosen_router_name
+        # The chosen_router is the router name that will be used
+        # for the rest of this function. It will be the same as
+        # the input arg router name, unless that name is 'random'.
+        chosen_router = args['router']
+        if chosen_router == 'random' :
+          chosen_router = random.choice ( list(context['routers']) )
+
+        context['senders'][sender_name]['router'] = chosen_router
         output_file_name = context['test_dir'] + "/" + sender_name + ".output"
         context['senders'][sender_name]['output_file_name'] = output_file_name
-        context['senders'][sender_name]['n_messages'] = n_messages
+        context['senders'][sender_name]['n_messages'] = args['n_messages']
 
-        port = str(context['routers'][chosen_router_name]['port'])
+        # TODO -- distinguish between AMQP port and TCP, etc.
+        port = str(context['routers'][chosen_router]['port'])
         context['senders'][sender_name]['port'] = port
 
         # Choose the sender's address randomly.
@@ -292,7 +300,6 @@ def start_receiver ( name ) :
     chosen_router = context['receivers'][name]['router']
     if chosen_router == "random" :
       chosen_router = random.choice ( list(context['routers']) )
-      print ( f"receiver {name} assigned to router {chosen_router}" )
 
     port   = str(context['routers'][chosen_router]['port'])
     out    = context['receivers'][name]['output_file_name']
@@ -323,7 +330,6 @@ def start_sender ( name ) :
     chosen_router = context['senders'][name]['router']
     if chosen_router == "random" :
       chosen_router = random.choice ( list(context['routers']) )
-      print ( f"sender {name} assigned to router {chosen_router}" )
 
     port   = context['senders'][name]['port']
     out    = context['senders'][name]['output_file_name']
@@ -334,7 +340,7 @@ def start_sender ( name ) :
     command = [ '../clients/send', \
                 'port', port,      \
                 'address', addr,   \
-                'message_count', n_msg ]
+                'message_count', str(n_msg) ]
 
     proc = subprocess.Popen ( command, 
                               env = make_env(),
@@ -396,6 +402,13 @@ def connect ( router_1, router_2 ) :
 
 
 
+def read_args ( words, args ) :
+    for i in range(len(words)-1) :
+      if words[i] in args :
+        args[words[i]] = words[i+1]
+
+
+
 def read_commands ( file_name ) :
     with open(file_name) as f:
         content = f.readlines()
@@ -419,7 +432,9 @@ def read_commands ( file_name ) :
       elif words[0] == 'receivers' :
         make_receivers ( words[1], words[2], words[3], words[4] ) 
       elif words[0] == 'senders' :
-        make_senders ( words[1], words[2], words[3] )
+        sender_args = default_sender_args.copy()
+        read_args ( words[1:], sender_args )
+        make_senders ( sender_args )
       elif words[0] == 'addresses' :
         make_addresses ( words[1] )
       elif words[0] == 'kill_and_replace_clients' :
