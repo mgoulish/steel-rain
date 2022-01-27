@@ -1,17 +1,17 @@
 # The Mayhem 2 test randomly kills and restarts clients --
 # on two routers. New clients are randomly assigned.
 echo Steel Rain : Mayhem
-router     A     4 
-router     B     4 
-connect    A     B
-addresses       10
-senders    router random    
+router     name A     worker_threads 4 
+router     name B     worker_threads 4 
+connect    A          B
+addresses  10
+senders    router random    n_senders 20
 receivers  router random
 start
 pause 5
-kill_and_replace_clients 5
+# kill_and_replace_clients 5
 echo ----------------------------------------------
 echo Halting
 echo ----------------------------------------------
-pause 5
+pause 60
 stop

@@ -24,12 +24,15 @@ context = { "routers"        : {},
 
 default_sender_args = { 'router'     : 'A', \
                         'n_senders'  :  10, \
-                        'n_messages' :  1000000000 }
+                        'n_messages' :  1000000 }
 
-default_receiver_args = { 'router'       : 'B',         \
-                          'n_receivers'  :  10,         \
-                          'n_messages'   :  1000000000, \
-                          'report_freq'  :  1000000 }
+default_receiver_args = { 'router'       : 'B',      \
+                          'n_receivers'  :  10,      \
+                          'n_messages'   :  1000000, \
+                          'report'       :  100000 }
+
+default_router_args = { 'name'           : 'A', \
+                        'worker_threads' :  4 }
 
 
 
@@ -111,10 +114,10 @@ def make_test_dir ( ) :
    
 
     
-def make_router ( command ) :
-    router_name = command[0]
-    threads = command[1]
-    port = find_open_port()
+def make_router ( args ) :
+    router_name = args['name']
+    threads     = args['worker_threads']
+    port        = find_open_port()
     config_file_name = context['test_dir'] + "/config/" + router_name + ".conf"
 
     # Start a new dictionary for this router.
@@ -186,13 +189,13 @@ def make_env ( ) :
 
 
 def make_senders ( args ) :
-    for i in range(args['n_senders']) :
+    for i in range(int(args['n_senders'])) :
         # Make a dictionary for this sender.
         context['sender_count'] += 1
         sender_name = 'send_' + str(context['sender_count'])
         context['clients_list'].append ( sender_name )
         context['senders'][sender_name] = {}
-        print ( f'Made sender |{sender_name}|.' )
+        #print ( f'Made sender |{sender_name}|.' )
 
         # Store the original router name, even (especially) if
         # it is random. We will need to know that later, if we
@@ -218,6 +221,7 @@ def make_senders ( args ) :
         # Choose the sender's address randomly.
         addr = random.choice ( context['addresses'] )
         context['senders'][sender_name]['addr'] = addr
+    print ( f"Made {len(context['senders'])} senders." )
 
 
 
@@ -228,7 +232,7 @@ def make_receivers ( args ) :
         receiver_name = 'recv_' + str(context['receiver_count'])
         context['clients_list'].append ( receiver_name )
         context['receivers'][receiver_name] = {}
-        print ( f'Made receiver |{receiver_name}|.' )
+        #print ( f'Made receiver |{receiver_name}|.' )
 
         # Store the original router name, even (especially) if
         # it is random. We will need to know that later, if we
@@ -245,7 +249,7 @@ def make_receivers ( args ) :
         output_file_name = context['test_dir'] + "/" + receiver_name + ".output"
         context['receivers'][receiver_name]['output_file_name'] = output_file_name
         context['receivers'][receiver_name]['n_messages'] = args['n_messages']
-        context['receivers'][receiver_name]['report'] = args['report_freq']
+        context['receivers'][receiver_name]['report'] = args['report']
 
         port = str(context['routers'][chosen_router]['port'])
         context['receivers'][receiver_name]['port'] = port
@@ -253,6 +257,7 @@ def make_receivers ( args ) :
         # Choose the sender's address randomly.
         addr = random.choice ( context['addresses'] )
         context['receivers'][receiver_name]['addr'] = addr
+    print ( f"Made {len(context['receivers'])} senders." )
 
 
 
@@ -317,12 +322,14 @@ def start_receiver ( name ) :
     out    = context['receivers'][name]['output_file_name']
     addr   = context['receivers'][name]['addr']
     n_msg  = context['receivers'][name]['n_messages']
+    freq   = context['receivers'][name]['report']
 
     output_file = open ( out, "w" ) 
     command = [ '../clients/receive', \
                 'port', port,         \
                 'address', addr,      \
-                'message_count', str(n_msg) ]
+                'message_count', str(n_msg), \
+                'report', str(freq) ]
 
     proc = subprocess.Popen ( command, 
                               env = make_env(),
@@ -395,10 +402,9 @@ def stop ( ) :
 
 
 def make_addresses ( n ) :
-    print ( f"Making {n} addresses." )
     for i in range(int(n)) :
       context['addresses'].append ( "addr_" + str(i+1) )
-    print ( f"There are now {len(context['addresses'])} addresses." )
+    print ( f"Made {len(context['addresses'])} addresses." )
 
 
 
@@ -433,7 +439,9 @@ def read_commands ( file_name ) :
         s = " "
         print(s.join(words[1:]))
       elif words[0] == 'router' :
-        make_router ( words[1:] )
+        router_args = default_router_args.copy()
+        read_args ( words[1:], router_args )
+        make_router ( router_args )
       elif words[0] == 'pause' :
         print ( f"pause for {words[1]} seconds." )
         time.sleep ( int(words[1]) )
