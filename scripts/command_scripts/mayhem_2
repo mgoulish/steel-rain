@@ -6,7 +6,7 @@ router     B     4
 connect    A     B
 addresses       10
 senders    router random    
-receivers  A 10 100000 1000000
+receivers  router random
 start
 pause 5
 kill_and_replace_clients 5

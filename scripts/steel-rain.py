@@ -21,9 +21,17 @@ context = { "routers"        : {},
 
 
 
+
 default_sender_args = { 'router'     : 'A', \
                         'n_senders'  :  10, \
                         'n_messages' :  1000000000 }
+
+default_receiver_args = { 'router'       : 'B',         \
+                          'n_receivers'  :  10,         \
+                          'n_messages'   :  1000000000, \
+                          'report_freq'  :  1000000 }
+
+
 
 def find_open_port():
         s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -213,8 +221,8 @@ def make_senders ( args ) :
 
 
 
-def make_receivers ( router_name, n, n_messages, report_freq ) :
-    for i in range(int(n)) :
+def make_receivers ( args ) :
+    for i in range(args['n_receivers']) :
         # Make a dictionary for this receiver.
         context['receiver_count'] += 1
         receiver_name = 'recv_' + str(context['receiver_count'])
@@ -225,17 +233,21 @@ def make_receivers ( router_name, n, n_messages, report_freq ) :
         # Store the original router name, even (especially) if
         # it is random. We will need to know that later, if we
         # are doing kill-and-replace.
-        context['receivers'][receiver_name]['router'] = router_name
-        chosen_router_name = router_name
-        if router_name == 'random' :
-          chosen_router_name = random.choice ( list(context['routers']) )
+        context['receivers'][receiver_name]['router'] = args['router']
+
+        # The chosen_router is the router name that will be used
+        # for the rest of this function. It will be the same as
+        # the input arg router name, unless that name is 'random'.
+        chosen_router = args['router']
+        if chosen_router == 'random' :
+          chosen_router = random.choice ( list(context['routers']) )
 
         output_file_name = context['test_dir'] + "/" + receiver_name + ".output"
         context['receivers'][receiver_name]['output_file_name'] = output_file_name
-        context['receivers'][receiver_name]['n_messages'] = n_messages
-        context['receivers'][receiver_name]['report'] = report_freq
+        context['receivers'][receiver_name]['n_messages'] = args['n_messages']
+        context['receivers'][receiver_name]['report'] = args['report_freq']
 
-        port = str(context['routers'][chosen_router_name]['port'])
+        port = str(context['routers'][chosen_router]['port'])
         context['receivers'][receiver_name]['port'] = port
 
         # Choose the sender's address randomly.
@@ -310,7 +322,7 @@ def start_receiver ( name ) :
     command = [ '../clients/receive', \
                 'port', port,         \
                 'address', addr,      \
-                'message_count', n_msg ]
+                'message_count', str(n_msg) ]
 
     proc = subprocess.Popen ( command, 
                               env = make_env(),
@@ -346,7 +358,7 @@ def start_sender ( name ) :
                               env = make_env(),
                               stdout = output_file )
     context['senders'][name]['process'] = proc
-    print ( f"Started sender {name} as proc {proc.pid} on {addr}." )
+    print ( f"Started sender {name} as proc {proc.pid} on router {chosen_router} on addr {addr}." )
 
 
 
@@ -430,7 +442,9 @@ def read_commands ( file_name ) :
       elif words[0] == 'stop' :
         stop ( )
       elif words[0] == 'receivers' :
-        make_receivers ( words[1], words[2], words[3], words[4] ) 
+        receiver_args = default_receiver_args.copy()
+        read_args ( words[1:], receiver_args )
+        make_receivers ( receiver_args )
       elif words[0] == 'senders' :
         sender_args = default_sender_args.copy()
         read_args ( words[1:], sender_args )
