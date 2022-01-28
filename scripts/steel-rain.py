@@ -117,20 +117,19 @@ def make_test_dir ( ) :
 def make_router ( args ) :
     router_name = args['name']
     threads     = args['worker_threads']
-    port        = find_open_port()
     config_file_name = context['test_dir'] + "/config/" + router_name + ".conf"
 
     # Start a new dictionary for this router.
     context["routers"][router_name] = {}
     context["routers"][router_name]['threads'] = threads
-    context["routers"][router_name]['port'] = port
+    context["routers"][router_name]['amqp_port'] = find_open_port()
     context["routers"][router_name]['config_file_name'] = config_file_name
 
 
 
 def write_router_config ( router_name ) :
-    threads = context["routers"][router_name]['threads']
-    port    = context["routers"][router_name]['port']
+    threads   = context["routers"][router_name]['threads']
+    amqp_port = context["routers"][router_name]['amqp_port']
 
     f = open ( context["routers"][router_name]['config_file_name'], "w" )
     f.write("router {\n")
@@ -144,7 +143,7 @@ def write_router_config ( router_name ) :
     f.write( "    saslMechanisms: ANONYMOUS\n")
     f.write( "    host: 0.0.0.0\n")
     f.write( "    authenticatePeer: no\n")
-    f.write(f"    port: {port}\n")
+    f.write(f"    port: {amqp_port}\n")
     f.write( "    linkCapacity: 250\n")
     f.write( "}\n")
 
@@ -215,8 +214,8 @@ def make_senders ( args ) :
         context['senders'][sender_name]['n_messages'] = args['n_messages']
 
         # TODO -- distinguish between AMQP port and TCP, etc.
-        port = str(context['routers'][chosen_router]['port'])
-        context['senders'][sender_name]['port'] = port
+        amqp_port = str(context['routers'][chosen_router]['amqp_port'])
+        context['senders'][sender_name]['port'] = amqp_port
 
         # Choose the sender's address randomly.
         addr = random.choice ( context['addresses'] )
@@ -226,7 +225,7 @@ def make_senders ( args ) :
 
 
 def make_receivers ( args ) :
-    for i in range(args['n_receivers']) :
+    for i in range(int(args['n_receivers'])) :
         # Make a dictionary for this receiver.
         context['receiver_count'] += 1
         receiver_name = 'recv_' + str(context['receiver_count'])
@@ -251,13 +250,13 @@ def make_receivers ( args ) :
         context['receivers'][receiver_name]['n_messages'] = args['n_messages']
         context['receivers'][receiver_name]['report'] = args['report']
 
-        port = str(context['routers'][chosen_router]['port'])
-        context['receivers'][receiver_name]['port'] = port
+        amqp_port = str(context['routers'][chosen_router]['amqp_port'])
+        context['receivers'][receiver_name]['port'] = amqp_port
 
         # Choose the sender's address randomly.
         addr = random.choice ( context['addresses'] )
         context['receivers'][receiver_name]['addr'] = addr
-    print ( f"Made {len(context['receivers'])} senders." )
+    print ( f"Made {len(context['receivers'])} receivers." )
 
 
 
@@ -318,7 +317,7 @@ def start_receiver ( name ) :
     if chosen_router == "random" :
       chosen_router = random.choice ( list(context['routers']) )
 
-    port   = str(context['routers'][chosen_router]['port'])
+    port   = str(context['routers'][chosen_router]['amqp_port'])
     out    = context['receivers'][name]['output_file_name']
     addr   = context['receivers'][name]['addr']
     n_msg  = context['receivers'][name]['n_messages']
