@@ -5,13 +5,13 @@ router     name A     worker_threads 4
 router     name B     worker_threads 4 
 connect    A          B
 addresses  10
-senders    router random    n_senders   20
-receivers  router random    n_receivers 10   n_messages 2000000
+senders    router random    n_senders   20   n_messages 100000
+receivers  router random    n_receivers 10   n_messages 100000  report 20000
 start
 pause 5
 # kill_and_replace_clients 5
+pause 10
 echo ----------------------------------------------
 echo Halting
 echo ----------------------------------------------
-pause 60
 stop
