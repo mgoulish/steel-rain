@@ -1,0 +1,15 @@
+echo Steel Rain : Mayhem
+router     name A     worker_threads 4 
+router     name B     worker_threads 4 
+connect    A          B
+edges      count 100  router A 
+edges      count 100  router B 
+addresses  1
+senders    router random    n_senders   1    n_messages 10000000000
+receivers  router random    n_receivers 200  n_messages 100000000  report 5000
+start
+pause 86400
+echo ----------------------------------------------
+echo Halting
+echo ----------------------------------------------
+stop

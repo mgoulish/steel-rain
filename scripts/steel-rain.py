@@ -17,7 +17,8 @@ context = { "routers"        : {},
             "addresses"      : [],
             "clients_list"   : [],
             "sender_count"   : 0,
-            "receiver_count" : 0 }
+            "receiver_count" : 0,
+            "edge_count"     : 0 }
 
 
 
@@ -33,6 +34,9 @@ default_receiver_args = { 'router'       : 'B',      \
 
 default_router_args = { 'name'           : 'A', \
                         'worker_threads' :  4 }
+
+default_edge_args = { 'count'  : 10, \
+                      'router' :  'A' }
 
 
 
@@ -109,6 +113,7 @@ def make_test_dir ( ) :
       sys.exit(1)
     os.mkdir ( test_dir )
     os.mkdir ( test_dir + "/config" )
+    os.mkdir ( test_dir + "/router_output" )
     context['test_dir'] = test_dir
     print ( f"Test dir is |{test_dir}|" )
    
@@ -117,38 +122,97 @@ def make_test_dir ( ) :
 def make_router ( args ) :
     router_name = args['name']
     threads     = args['worker_threads']
-    config_file_name = context['test_dir'] + "/config/" + router_name + ".conf"
 
     # Start a new dictionary for this router.
     context["routers"][router_name] = {}
     context["routers"][router_name]['threads'] = threads
     context["routers"][router_name]['amqp_port'] = find_open_port()
+    context["routers"][router_name]['edge_port'] = find_open_port()
+    context["routers"][router_name]['mode'] = "interior"
+    config_file_name = context['test_dir'] + "/config/" + router_name + ".conf"
     context["routers"][router_name]['config_file_name'] = config_file_name
 
 
 
-def write_router_config ( router_name ) :
-    threads   = context["routers"][router_name]['threads']
-    amqp_port = context["routers"][router_name]['amqp_port']
+def make_edges ( args ) :
+    for n in range(int(args['count'])) :
+      context['edge_count'] += 1
+      my_name = "edge" + str(context['edge_count'])
+      context["routers"][my_name] = {}
+      context["routers"][my_name]['threads'] = 4
+      context["routers"][my_name]['mode'] = "edge"
+      context["routers"][my_name]['router'] = args['router']
+      context["routers"][my_name]['amqp_port'] = find_open_port()
+      config_file_name = context['test_dir'] + "/config/" + my_name + ".conf"
+      context["routers"][my_name]['config_file_name'] = config_file_name
 
-    f = open ( context["routers"][router_name]['config_file_name'], "w" )
-    f.write("router {\n")
-    f.write( "    mode: interior\n")
-    f.write(f"    id: {router_name}\n")
-    f.write(f"    workerThreads: {threads}\n")
-    f.write( "}\n")
-    f.write( "listener {\n")
-    f.write( "    role: normal\n")
-    f.write( "    stripAnnotations: no\n")
-    f.write( "    saslMechanisms: ANONYMOUS\n")
-    f.write( "    host: 0.0.0.0\n")
-    f.write( "    authenticatePeer: no\n")
-    f.write(f"    port: {amqp_port}\n")
-    f.write( "    linkCapacity: 250\n")
-    f.write( "}\n")
 
-    if 'inter_router_connector' in context['routers'][router_name] :
-      port = context['routers'][router_name]['inter_router_connector']
+
+def write_router_config ( my_name ) :
+    
+    print ( f"Writing config for router {my_name}" )
+
+    threads   = context["routers"][my_name]['threads']
+    amqp_port = context["routers"][my_name]['amqp_port']
+    mode      = context["routers"][my_name]["mode"]
+
+    f = open ( context["routers"][my_name]['config_file_name'], "w" )
+
+
+    if mode == "interior" :
+      edge_port = context["routers"][my_name]['edge_port']
+      f.write("router {\n")
+      f.write( "    mode: interior\n")
+      f.write(f"    id: {my_name}\n")
+      f.write(f"    workerThreads: {threads}\n")
+      f.write( "}\n")
+      f.write( "listener {\n")
+      f.write( "    role: normal\n")
+      f.write( "    stripAnnotations: no\n")
+      f.write( "    saslMechanisms: ANONYMOUS\n")
+      f.write( "    host: 0.0.0.0\n")
+      f.write( "    authenticatePeer: no\n")
+      f.write(f"    port: {amqp_port}\n")
+      f.write( "    linkCapacity: 250\n")
+      f.write( "}\n")
+      f.write( "listener {\n")
+      f.write( "    role: edge\n")
+      f.write(f"    port: {edge_port}\n")
+      f.write( "    host: 0.0.0.0\n")
+      f.write( "    saslMechanisms: ANONYMOUS\n")
+      f.write( "    idleTimeoutSeconds: 120\n")
+      f.write( "    authenticatePeer: no\n")
+      f.write( "}\n")
+    elif mode == "edge" :
+
+      print ( f"Making this edge: {context['routers'][my_name]}" )
+      my_interior_router = context['routers'][my_name]['router']
+      interior_edge_port = context['routers'][my_interior_router]['edge_port']
+
+      f.write("router {\n")
+      f.write( "    mode: edge\n")
+      f.write(f"    id: {my_name}\n")
+      f.write(f"    workerThreads: {threads}\n")
+      f.write( "}\n")
+      f.write( "listener {\n")
+      f.write( "    role: normal\n")
+      f.write( "    stripAnnotations: no\n")
+      f.write( "    saslMechanisms: ANONYMOUS\n")
+      f.write( "    host: 0.0.0.0\n")
+      f.write( "    authenticatePeer: no\n")
+      f.write(f"    port: {amqp_port}\n")
+      f.write( "    linkCapacity: 250\n")
+      f.write( "}\n")
+      f.write( "connector {\n")
+      f.write( "    role: edge\n")
+      f.write(f"    port: {interior_edge_port}\n")
+      f.write( "    host: 127.0.0.1\n")
+      f.write( "    saslMechanisms: ANONYMOUS\n")
+      f.write( "    idleTimeoutSeconds: 120\n")
+      f.write( "}\n")
+
+    if 'inter_router_connector' in context['routers'][my_name] :
+      port = context['routers'][my_name]['inter_router_connector']
       f.write( "connector {\n")
       f.write( "    role: inter-router\n")
       f.write( "    host: 0.0.0.0\n")
@@ -156,8 +220,8 @@ def write_router_config ( router_name ) :
       f.write(f"    port: {port}\n")
       f.write( "}\n")
 
-    if 'inter_router_listener' in context['routers'][router_name] :
-      port = context['routers'][router_name]['inter_router_listener']
+    if 'inter_router_listener' in context['routers'][my_name] :
+      port = context['routers'][my_name]['inter_router_listener']
       f.write( "listener {\n")
       f.write( "    role: inter-router\n")
       f.write( "    host: 0.0.0.0\n")
@@ -253,34 +317,34 @@ def make_receivers ( args ) :
         amqp_port = str(context['routers'][chosen_router]['amqp_port'])
         context['receivers'][receiver_name]['port'] = amqp_port
 
-        # Choose the sender's address randomly.
+        # Choose the receiver's address randomly.
         addr = random.choice ( context['addresses'] )
         context['receivers'][receiver_name]['addr'] = addr
     print ( f"Made {len(context['receivers'])} receivers." )
 
 
 
-def start_router ( router_name ) :
-    config_file_name = context['test_dir'] + "/config/" + router_name + ".conf"
+def start_router ( my_name ) :
+    config_file_name = context['test_dir'] + "/config/" + my_name + ".conf"
     command = [ context['router'], '--config', config_file_name ]
 
-    output_file_name = context['test_dir'] + "/" + router_name + ".output"
+    output_file_name = context['test_dir'] + "/router_output/" + my_name + ".output"
 
     output_file = open ( output_file_name, "w" ) 
     process = subprocess.Popen ( command, 
                                  env = make_env(),
                                  stderr = output_file )
-    context['routers'][router_name]['process'] = process
+    context['routers'][my_name]['process'] = process
 
 
 
-def stop_router ( router_name ) :
-    if 'process' in context['routers'][router_name] :
-        router_process = context['routers'][router_name]['process']
+def stop_router ( my_name ) :
+    if 'process' in context['routers'][my_name] :
+        router_process = context['routers'][my_name]['process']
         router_process.terminate()
-        print ( f"Stopped router: |{router_name}|")
+        print ( f"Stopped router: |{my_name}|")
     else :
-        print ( f"Not stopping router |{router_name}|, because it was not started.")
+        print ( f"Not stopping router |{my_name}|, because it was not started.")
 
 
 
@@ -359,6 +423,9 @@ def start_sender ( name ) :
                 'port', port,      \
                 'address', addr,   \
                 'message_count', str(n_msg) ]
+    #command = [ '../clients/send', \
+                #'--port', port,      \
+                #'--address', addr ]
 
     proc = subprocess.Popen ( command, 
                               env = make_env(),
@@ -377,7 +444,7 @@ def start_senders ( ) :
 def start ( ) :
     print ( "Starting!" )
     start_routers ( )
-    delay = 5
+    delay = 60
     print ( f"Waiting {delay} seconds for routers." )
     time.sleep ( delay )
     print ( "Starting receivers." )
@@ -421,11 +488,14 @@ def connect ( router_1, router_2 ) :
 
 def read_args ( words, args ) :
     for i in range(len(words)-1) :
+      print ( f"arg: |{words[i]}|" )
       if words[i] in args :
         args[words[i]] = words[i+1]
+        print ( f"  value: |{words[i+1]}|" )
 
 
 
+# Read commands from the control script.
 def read_commands ( file_name ) :
     with open(file_name) as f:
         content = f.readlines()
@@ -441,6 +511,11 @@ def read_commands ( file_name ) :
         router_args = default_router_args.copy()
         read_args ( words[1:], router_args )
         make_router ( router_args )
+      elif words[0] == 'edges' :
+        edge_args = default_edge_args.copy()
+        read_args ( words[1:], edge_args )
+        print ( f"edge args: {edge_args}" )
+        make_edges ( edge_args )
       elif words[0] == 'pause' :
         print ( f"pause for {words[1]} seconds." )
         time.sleep ( int(words[1]) )
