@@ -1,4 +1,0 @@
-#! /bin/bash
-
-./steel-rain.py ./command_scripts/many_edges
-

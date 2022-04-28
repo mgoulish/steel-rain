@@ -1,9 +1,0 @@
-echo Simple Test
-router A 4 
-start_routers
-pause 5
-recv A foo
-pause 5
-send A foo
-pause 10
-stop
