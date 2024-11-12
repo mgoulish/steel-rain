@@ -1,6 +1,6 @@
 #! /bin/bash
 
-echo "r: Running Steel Rain"
+echo "r: Steel Rain"
 sleep 2
 
 if test -f "./steel_rain"; then
@@ -16,6 +16,9 @@ else
   fi
 fi
 
+sleep 3
+echo "r: running..."
+sleep 1
 
 ./steel_rain   
 
