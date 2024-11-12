@@ -1,0 +1,11 @@
+#! /bin/bash
+
+rm -f router_?_output.txt
+rm -f mserver_*
+rm -f mclient_*
+rm -f steel_rain
+
+rm -rf ./cc_5_configs
+
+
+

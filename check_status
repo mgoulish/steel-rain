@@ -1,0 +1,4 @@
+#! /bin/bash
+
+ps -aef | grep $1 | grep -v grep
+
