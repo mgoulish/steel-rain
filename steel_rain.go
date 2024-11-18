@@ -465,6 +465,36 @@ func bounce_connectors(network_size int,
 	}
 }
 
+// I did not name this program.
+// It's not my fault!
+func slowboi() {
+    if slowboi_path, err := exec.LookPath("slowboi"); err != nil {
+        fmt.Printf("Can't find slowboi executable\n")
+	return
+    } else {
+        fmt.Printf("Slowboi found at '%s'\n", slowboi_path)
+        cmd := exec.Command("slowboi")
+
+        file, err := os.Create ( "./slowboi_output.txt" )
+        if err != nil {
+            fmt.Println("Error creating ./slowboi_output.txt:", err)
+            return
+        }
+        defer file.Close()
+
+       cmd.Stdout = file
+       cmd.Stderr = file
+
+       if err := cmd.Start(); err != nil {
+          fmt.Println("slowboi start failed:", err)
+          return
+       }
+
+       fmt.Println("slowboi output is being written to ./slowboi_output.txt")
+     }
+}
+
+
 func main() {
 
 	skmanage_flag := flag.String("skmanage",
@@ -474,7 +504,10 @@ func main() {
 	flag.Parse()
 	fmt.Println("skmanage:", *skmanage_flag)
 
-	rand.Seed(time.Now().UnixNano())
+	random_seed := time.Now().UnixNano()
+
+	rand.Seed(random_seed)
+	log.Printf("main: random seed is %v\n", random_seed)
 	network_size := 5
 	var wg sync.WaitGroup
 	listener_to_port_map := make(map[string]int)
@@ -520,6 +553,8 @@ func main() {
 	}
 	fmt.Printf("main: CWD == |%s|\n", cwd)
 
+	go slowboi()
+	time.Sleep(2 * time.Second) // No need to randomize
 	go management_commands(network_size, *skmanage_flag)
 
 	log.Printf("main: starting TCP servers\n")
