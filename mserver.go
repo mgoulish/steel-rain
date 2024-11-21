@@ -42,17 +42,23 @@ func handleConnection(conn net.Conn, count int) {
 
 func main() {
 	port := os.Args[1]
+	fmt.Println("SERVER for port ", port)
 	listener, err := net.Listen("tcp", ":"+port)
 	if err != nil {
 		log.Fatal("Error starting server:", err)
 	}
 	defer listener.Close()
 
-	log_file := "mserver_" + port
+        cwd, err := os.Getwd()
+        if err != nil {
+                log.Fatal(err)
+        }
+
+	log_file := cwd + "/server_output/mserver_" + port
 
 	file, err := os.OpenFile(log_file, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
 	if err != nil {
-		log.Fatal(err) // If there's an error opening the file, log it and exit
+		log.Fatal(err)
 	}
 	defer file.Close()
 	log.SetOutput(file)

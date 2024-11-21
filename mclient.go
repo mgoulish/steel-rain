@@ -9,8 +9,6 @@ import (
 	"time"
 )
 
-// Used in Test 3
-
 func send_message(conn net.Conn) {
 	writer := bufio.NewWriter(conn)
 
@@ -73,10 +71,15 @@ func sendMessages(conn net.Conn) {
 func main() {
 	port := os.Args[1]
 
-	log_file := "mclient_" + port
+	        cwd, err := os.Getwd()
+        if err != nil {
+                log.Fatal(err)
+        }
+
+	log_file := cwd + "/client_output/mclient_" + port
 	file, err := os.OpenFile(log_file, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
 	if err != nil {
-		log.Fatal(err) // If there's an error opening the file, log it and exit
+		log.Fatal(err)
 	}
 	defer file.Close()
 	log.SetOutput(file)

@@ -35,12 +35,12 @@ func make_router_command(name string,
 	router_commands[name] = cmd
 }
 
-func start_router(name string, router_commands map[string]*exec.Cmd) {
+func start_router(name string, router_commands map[string]*exec.Cmd, cwd string) {
 
 	cmd := router_commands[name]
 	//log.Printf ( "start_router: cmd: |%v|\n", cmd )
 
-	file, err := os.OpenFile("router_"+name+"_output.txt", os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+	file, err := os.OpenFile(cwd+"/router_output/router_"+name+"_output.txt", os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -142,7 +142,7 @@ func bounce_routers(wg *sync.WaitGroup,
 		count++
 		n := rand.Intn(network_size)
 		name := string(rune('A' + n))
-		log.Printf("Bounce %d ------------------------------------\n", count)
+		log.Printf("Router Bounce %d ------------------------------------\n", count)
 
 		make_config_file(n,
 			network_size,
@@ -155,7 +155,7 @@ func bounce_routers(wg *sync.WaitGroup,
 		stop_router(name, cmd)
 		time.Sleep(time.Duration(10+rand.Intn(15)) * time.Second)
 		cmd.Process = nil
-		start_router(name, router_commands)
+		start_router(name, router_commands, cwd)
 		//time.Sleep ( 15 * time.Second )
 	}
 }
@@ -211,20 +211,17 @@ func make_config_file(router_number int,
 	w.Flush()
 
 	// Inter-router listener --------------------------------
-	// The first router doesn't have one, because no other
-	// router will connect to him.
-	if router_number > 0 {
-		fp(w, "listener {\n")
-		fp(w, "  name: inter-router-listener-%s\n", router_id)
-		fp(w, "  port: %d\n", inter_router_listener_port+router_number-1)
-		fp(w, "  role: inter-router\n")
-		fp(w, "  idleTimeoutSeconds: 120\n")
-		fp(w, "  saslMechanisms: ANONYMOUS\n")
-		fp(w, "  host: 0.0.0.0\n")
-		fp(w, "  authenticatePeer: no\n")
-		fp(w, "}\n\n")
-		w.Flush()
-	}
+	// Every router gets one listener, at 5672 + its number.
+	fp(w, "listener {\n")
+	fp(w, "  name: inter-router-listener-%s\n", router_id)
+	fp(w, "  port: %d\n", inter_router_listener_port+router_number)
+	fp(w, "  role: inter-router\n")
+	fp(w, "  idleTimeoutSeconds: 120\n")
+	fp(w, "  saslMechanisms: ANONYMOUS\n")
+	fp(w, "  host: 0.0.0.0\n")
+	fp(w, "  authenticatePeer: no\n")
+	fp(w, "}\n\n")
+	w.Flush()
 
 	// TCP listeners ---------------------------------------
 	// The network will have a total of N * 3 possible TCP
@@ -468,32 +465,31 @@ func bounce_connectors(network_size int,
 // I did not name this program.
 // It's not my fault!
 func slowboi() {
-    if slowboi_path, err := exec.LookPath("slowboi"); err != nil {
-        fmt.Printf("Can't find slowboi executable\n")
-	return
-    } else {
-        fmt.Printf("Slowboi found at '%s'\n", slowboi_path)
-        cmd := exec.Command("slowboi")
+	if slowboi_path, err := exec.LookPath("slowboi"); err != nil {
+		fmt.Printf("Can't find slowboi executable\n")
+		return
+	} else {
+		fmt.Printf("Slowboi found at '%s'\n", slowboi_path)
+		cmd := exec.Command("slowboi")
 
-        file, err := os.Create ( "./slowboi_output.txt" )
-        if err != nil {
-            fmt.Println("Error creating ./slowboi_output.txt:", err)
-            return
-        }
-        defer file.Close()
+		file, err := os.Create("./slowboi_output.txt")
+		if err != nil {
+			fmt.Println("Error creating ./slowboi_output.txt:", err)
+			return
+		}
+		defer file.Close()
 
-       cmd.Stdout = file
-       cmd.Stderr = file
+		cmd.Stdout = file
+		cmd.Stderr = file
 
-       if err := cmd.Start(); err != nil {
-          fmt.Println("slowboi start failed:", err)
-          return
-       }
+		if err := cmd.Start(); err != nil {
+			fmt.Println("slowboi start failed:", err)
+			return
+		}
 
-       fmt.Println("slowboi output is being written to ./slowboi_output.txt")
-     }
+		fmt.Println("slowboi output is being written to ./slowboi_output.txt")
+	}
 }
-
 
 func main() {
 
@@ -532,10 +528,16 @@ func main() {
 			connector_to_port_map)
 	}
 
+	cwd, err := os.Getwd()
+	if err != nil {
+		log.Fatal(err)
+	}
+	fmt.Printf("main: CWD == |%s|\n", cwd)
+
 	log.Printf("main: starting routers\n")
 	for i := 0; i < network_size; i++ {
 		router_id := string(rune('A' + i))
-		start_router(router_id, router_commands)
+		start_router(router_id, router_commands, cwd)
 	}
 	log.Printf("Pause 5 seconds.\n")
 	time.Sleep(5 * time.Second) // No need to randomize
@@ -543,15 +545,9 @@ func main() {
 	/*
 	  for {
 	    log.Println ( "main: TEMP sleeping after starting routers\n" )
-	    time.Sleep ( 10 * time.Second )  // No need to randomize
+	    time.Sleep ( 10 * time.Second )  
 	  }
 	*/
-
-	cwd, err := os.Getwd()
-	if err != nil {
-		log.Fatal(err)
-	}
-	fmt.Printf("main: CWD == |%s|\n", cwd)
 
 	go slowboi()
 	time.Sleep(2 * time.Second) // No need to randomize

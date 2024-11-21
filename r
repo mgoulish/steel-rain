@@ -16,6 +16,15 @@ else
   fi
 fi
 
+rm -rf ./router_output
+mkdir  ./router_output
+
+rm -rf ./server_output
+mkdir  ./server_output
+
+rm -rf ./client_output
+mkdir  ./client_output
+
 sleep 3
 echo "r: running..."
 sleep 1
