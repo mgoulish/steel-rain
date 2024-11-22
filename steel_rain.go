@@ -268,26 +268,32 @@ func make_config_file(router_number int,
 		}
 	}
 
-	// Inter-Router Connectors -----------------------------
-	// To make a completely-connected graph, each router
-	// connects to all higher-number routers.
-	for j := router_number + 1; j < network_size; j++ {
-		connect_to_id := string(rune('A' + j))
-		// Numbering of inter router listener ports
-		// starts at outer B, not A.
-		// So when router_number == 0 at Router A, we want the
-		// connect-to port to be 20,000. (The port for B.)
-		connect_to_port := inter_router_listener_port + j - 1
-		fp(w, "connector {\n")
-		fp(w, "  name: %s-connector-to-%s\n", router_id, connect_to_id)
-		fp(w, "  port: %d\n", connect_to_port)
-		fp(w, "  role: inter-router\n")
-		fp(w, "  stripAnnotations: no\n")
-		fp(w, "  idleTimeoutSeconds: 120\n")
-		fp(w, "  saslMechanisms: ANONYMOUS\n")
-		fp(w, "  host: 127.0.0.1\n")
-		fp(w, "}\n\n")
-		w.Flush()
+	// Cycle through all routers (ignoring yourself)
+	// and randomly choose whether to connect to each one,
+	// with a probability of 0.5 on each.
+        my_id := string(rune('A' + router_number))
+	for candidate_router := 0; candidate_router < network_size; candidate_router++ {
+		if candidate_router == router_number {
+			continue // Don't try to connect to ourself
+		}
+		// Randomly pick 0 or 1.
+		// 1 means we will connect to this router.
+		if rand.Intn(2) == 1 {
+			connect_to_id := string(rune('A' + candidate_router))
+
+			log.Printf("Router %s will connect to router %s\n", my_id, connect_to_id)
+			connect_to_port := inter_router_listener_port + candidate_router
+			fp(w, "connector {\n")
+			fp(w, "  name: %s-connector-to-%s\n", router_id, connect_to_id)
+			fp(w, "  port: %d\n", connect_to_port)
+			fp(w, "  role: inter-router\n")
+			fp(w, "  stripAnnotations: no\n")
+			fp(w, "  idleTimeoutSeconds: 120\n")
+			fp(w, "  saslMechanisms: ANONYMOUS\n")
+			fp(w, "  host: 127.0.0.1\n")
+			fp(w, "}\n\n")
+			w.Flush()
+		}
 	}
 }
 
@@ -462,14 +468,12 @@ func bounce_connectors(network_size int,
 	}
 }
 
-// I did not name this program.
-// It's not my fault!
 func slowboi() {
 	if slowboi_path, err := exec.LookPath("slowboi"); err != nil {
-		fmt.Printf("Can't find slowboi executable\n")
+		fmt.Printf("slowboi error: Can't find executable\n")
 		return
 	} else {
-		fmt.Printf("Slowboi found at '%s'\n", slowboi_path)
+		fmt.Printf("slowboi: found executable at '%s'\n", slowboi_path)
 		cmd := exec.Command("slowboi")
 
 		file, err := os.Create("./slowboi_output.txt")
@@ -545,7 +549,7 @@ func main() {
 	/*
 	  for {
 	    log.Println ( "main: TEMP sleeping after starting routers\n" )
-	    time.Sleep ( 10 * time.Second )  
+	    time.Sleep ( 10 * time.Second )
 	  }
 	*/
 
